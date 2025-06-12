@@ -167,6 +167,6 @@ build:$(BUILD_DIR)/kernel.bin
 gdb_symbol:
 	objcopy --only-keep-debug $(BUILD_DIR)/kernel.bin $(BUILD_DIR)/kernel.sym
 run:
-	/home/eehf/bochs/bin/bochs
+	sudo /home/zhuqingsen/bochs-e1000-debug/bin/bochs
 all:mk_dir boot build hd gdb_symbol run
 #make all 就是依次执行mk_dir build hd gdb_symbol

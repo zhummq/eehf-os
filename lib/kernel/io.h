@@ -19,7 +19,16 @@ static inline void outsw(uint16_t port, const void* addr, uint32_t word_cnt) {
    已经将ds,es,ss段的选择子都设置为相同的值了,此时不用担心数据错乱。*/
    asm volatile ("cld; rep outsw" : "+S" (addr), "+c" (word_cnt) : "d" (port));
 }                                       //S表示寄存器esi/si
+static inline void outl(uint16_t port, uint32_t data){
+  __asm__ volatile("outl %[v], %[p]" : : [p]"d" (port), [v]"a" (data));
+}
 
+
+static inline uint32_t inl(uint16_t port){
+  uint32_t rv;
+  __asm__ volatile("inl %1, %0" : "=a" (rv) : "dN" (port));
+	return rv;
+}
 /* 将从端口port读入的一个字节返回 */
 static inline uint8_t inb(uint16_t port) {
    uint8_t data;

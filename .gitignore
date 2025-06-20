@@ -4,3 +4,4 @@ build
 build/kernel.sym
 bochsout.txt
 hd3M.img
+hd80M.img

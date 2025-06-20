@@ -4,9 +4,9 @@ ENTRY_POINT=0xc0001500
 HD60M_PATH=./hd3M.img
 #只需要把hd60m.img路径改成自己环境的路径，整个代码直接make all就完全写入了，能够运行成功
 AS=nasm
-CC=gcc-4.9
+CC=gcc
 LD=ld
-LIB= -I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/ -I thread/ -I userprog/	-I fs/ -I shell/
+LIB= -I device/net -I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/ -I thread/ -I userprog/	-I fs/ -I shell/
 ASFLAGS= -f elf -g
 CFLAGS= -Wall $(LIB) -c -fno-builtin -W -Wstrict-prototypes -Wmissing-prototypes -m32 -fno-stack-protector -g
 #-Wall warning all的意思，产生尽可能多警告信息，-fno-builtin不要采用内部函数，
@@ -25,7 +25,8 @@ OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/init.o \
 	$(BUILD_DIR)/tss.o	$(BUILD_DIR)/process.o	$(BUILD_DIR)/syscall.o $(BUILD_DIR)/syscall-init.o \
 	$(BUILD_DIR)/stdio.o $(BUILD_DIR)/stdio-kernel.o $(BUILD_DIR)/ide.o $(BUILD_DIR)/fs.o $(BUILD_DIR)/inode.o \
 	$(BUILD_DIR)/file.o $(BUILD_DIR)/dir.o $(BUILD_DIR)/fork.o	$(BUILD_DIR)/shell.o $(BUILD_DIR)/buildin_cmd.o \
-	$(BUILD_DIR)/exec.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/wait_exit.o $(BUILD_DIR)/pipe.o
+	$(BUILD_DIR)/exec.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/wait_exit.o $(BUILD_DIR)/pipe.o\
+$(BUILD_DIR)/pci.o $(BUILD_DIR)/e1000.o
 #顺序最好是调用在前，实现在后
 
 ######################编译两个启动文件的代码#####################################
@@ -132,6 +133,11 @@ $(BUILD_DIR)/wait_exit.o:userprog/wait_exit.c
 
 $(BUILD_DIR)/pipe.o:shell/pipe.c
 	$(CC) $(CFLAGS) -o $@ $<
+$(BUILD_DIR)/pci.o:device/pci.c
+	$(CC) $(CFLAGS) -o $@ $<
+$(BUILD_DIR)/e1000.o:device/net/e1000.c
+	$(CC) $(CFLAGS) -o $@ $<
+
 ###################编译汇编内核代码#####################################################
 $(BUILD_DIR)/kernel.o:kernel/kernel.S 
 	$(AS) $(ASFLAGS) -o $@ $<
@@ -167,6 +173,6 @@ build:$(BUILD_DIR)/kernel.bin
 gdb_symbol:
 	objcopy --only-keep-debug $(BUILD_DIR)/kernel.bin $(BUILD_DIR)/kernel.sym
 run:
-	sudo /home/zhuqingsen/bochs-e1000-debug/bin/bochs
+	sudo /home/zhuqingsen/bochs-e1000/bin/bochs 
 all:mk_dir boot build hd gdb_symbol run
 #make all 就是依次执行mk_dir build hd gdb_symbol

@@ -14,7 +14,7 @@ void init(void);
 int main(void)
 {
     put_str("I am kernel\n");
-    init_all();
+       init_all();
 
     uint32_t file_size = 19500;
     uint32_t sec_cnt = DIV_ROUND_UP(file_size, 512);
@@ -32,8 +32,8 @@ int main(void)
         }
     }
 
-    cls_screen();
-    console_put_str("[rabbit@localhost /]$ ");
+    //cls_screen();
+    console_put_str("[eehf@localhost /]$ ");
     thread_exit(running_thread(), true);
     return 0;
 }

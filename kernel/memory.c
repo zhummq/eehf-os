@@ -262,6 +262,17 @@ void *malloc_page(enum pool_flags pf, uint32_t pg_cnt)
     return vaddr_start;
 }
 
+
+void map_area(uint32_t base,uint32_t size){
+  uint32_t cnt =DIV_ROUND_UP(size,PG_SIZE);
+   while (cnt-- > 0){
+    while (1) {
+    }
+    page_table_add((void *)base,(void *)base);
+    base += PG_SIZE;
+  }
+}
+
 /* 从内核物理内存池中申请pg_cnt页内存,成功则返回其虚拟地址,失败则返回NULL */
 void *get_kernel_pages(uint32_t pg_cnt)
 {

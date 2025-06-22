@@ -10,6 +10,7 @@ struct pci_bar_t {
   uint8_t type;
   uint32_t iobase;
   uint32_t size;
+  uint32_t viobase;
 };
 
 struct pci_device {

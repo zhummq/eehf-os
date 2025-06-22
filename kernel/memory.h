@@ -40,7 +40,7 @@ struct mem_block_desc {
 };
 
 #define DESC_CNT 7	   // 内存块描述符个数，对应16、32、64、128、256、512、1024这7种小内存块
-void map_area(uint32_t base,uint32_t size);
+void map_area(uint32_t vbase,uint32_t pbase, uint32_t size);
 void* get_kernel_pages(uint32_t pg_cnt);
 void* malloc_page(enum pool_flags pf, uint32_t pg_cnt);
 void malloc_init(void);

@@ -263,13 +263,13 @@ void *malloc_page(enum pool_flags pf, uint32_t pg_cnt)
 }
 
 
-void map_area(uint32_t base,uint32_t size){
+void map_area(uint32_t vbase,uint32_t pbase, uint32_t size){
   uint32_t cnt =DIV_ROUND_UP(size,PG_SIZE);
    while (cnt-- > 0){
-    while (1) {
-    }
-    page_table_add((void *)base,(void *)base);
-    base += PG_SIZE;
+    
+    page_table_add((void *)vbase,(void *)pbase);
+    vbase += PG_SIZE;
+    pbase += PG_SIZE;
   }
 }
 

@@ -1,15 +1,14 @@
 # 基本配置
-megs: 32# 分配 64MB 内存
-romimage: file=/home/zhuqingsen/bochs-e1000/share/bochs/BIOS-bochs-legacy
-vgaromimage: file=/home/zhuqingsen/bochs-e1000/share/bochs/VGABIOS-lgpl-latest-debug
-
+megs: 32# 分配 64MB 内存st-debug
+romimage: file=/home/eehf/bochs-e1000-2.8/share/bochs/BIOS-bochs-legacy
+vgaromimage: file=/home/eehf/bochs-e1000-2.8/share/bochs/VGABIOS-lgpl-latest
 # 启动设备（从硬盘镜像启动）
 boot: disk
 
 # 硬盘镜像配置
 ata0:enabled=1,ioaddr1=0x1f0,ioaddr2=0x3f0,irq=14
-ata0-master: type=disk, path="/home/zhuqingsen/eehf-os/hd3M.img", mode=flat,cylinders=121,heads=16,spt=63
-ata0-slave: type=disk, path="/home/zhuqingsen/eehf-os/hd80M.img", mode=flat
+ata0-master: type=disk, path="/home/eehf/eehf-os/hd3M.img", mode=flat,cylinders=121,heads=16,spt=63
+ata0-slave: type=disk, path="/home/eehf/eehf-os/hd80M.img", mode=flat
 
 # 启用鼠标（可选）
 mouse: enabled=1
@@ -17,6 +16,6 @@ cpu: model=pentium
 # 日志输出（可选）
 log: bochsout.txt
 debug_symbols: file=kernel.sym
-e1000: enabled=1, mac=00:0c:29:ab:cd:ef, ethmod=tuntap,ethdev=/dev/net/tun, script=/home/eehf/os-dev/tunconfig.sh
+e1000: enabled=1, mac=00:0c:29:ab:cd:ef, ethmod=tuntap,ethdev=/dev/net/tun, script=/home/eehf/os-dev/tunconfig.sh,mmioaddr =0xfeb80000
 
 gdbstub: enabled=1, port=1234

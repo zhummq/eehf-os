@@ -4,7 +4,7 @@
 #include "stdint.h"
 #define INTEL_VEND     0x8086  // Vendor ID for Intel 
 #define E1000_DEV      0x100E  //device ID for the e1000 Qemu, Bochs, and VirtualBox emmulated 
-
+#define MMIOADDR 0xfeb80000
 
 
 #define E1000_NUM_RX_DESC 32

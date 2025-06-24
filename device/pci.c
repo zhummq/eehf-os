@@ -24,7 +24,10 @@ uint32_t pci_read_config(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset
 
   return inl(PCI_DATA);
 }
-
+uint8_t pci_interrupt(struct pci_device * device){
+  uint32_t data = pci_read_config(device->bus,device->slot,device->func,0x3c);
+  return data & 0xff;
+}
 
 static void pci_scan(void){
   int bus, slot, func = 0;

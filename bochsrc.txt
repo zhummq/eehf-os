@@ -1,5 +1,6 @@
 # 基本配置
-megs: 32# 分配 64MB 内存st-debug
+megs: 128# 分配 64MB 内存st-debug
+
 romimage: file=/home/eehf/bochs-e1000-2.8/share/bochs/BIOS-bochs-legacy
 vgaromimage: file=/home/eehf/bochs-e1000-2.8/share/bochs/VGABIOS-lgpl-latest
 # 启动设备（从硬盘镜像启动）
@@ -16,6 +17,6 @@ cpu: model=pentium
 # 日志输出（可选）
 log: bochsout.txt
 debug_symbols: file=kernel.sym
-e1000: enabled=1, mac=00:0c:29:ab:cd:ef, ethmod=tuntap,ethdev=/dev/net/tun, script=/home/eehf/os-dev/tunconfig.sh,mmioaddr =0xfeb80000
+e1000: enabled=1, mac=00:0c:29:ab:cd:ef, ethmod=tuntap,ethdev=/dev/net/tun, script=/home/eehf/os-dev/tunconfig.sh
 
 gdbstub: enabled=1, port=1234

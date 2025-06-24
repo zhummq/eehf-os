@@ -54,7 +54,7 @@ static void pic_init(void) {
 
  
    outb (PIC_M_DATA, 0xf8);    //IRQ2用于级联从片,必须打开,否则无法响应从片上的中断主片上打开的中断有IRQ0的时钟,IRQ1的键盘和级联从片的IRQ2,其它全部关闭
-   outb (PIC_S_DATA, 0xbf);    //打开从片上的IRQ14,此引脚接收硬盘控制器的中断 
+   outb (PIC_S_DATA, 0xfb);    //打开从片上的IRQ14,此引脚接收硬盘控制器的中断 
 
    put_str("   pic_init done\n");
 }

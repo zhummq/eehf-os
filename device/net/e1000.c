@@ -1,4 +1,5 @@
 #include "e1000.h"
+#include "interrupt.h"
 #include "memory.h"
 #include "pci.h"
 #include "global.h"
@@ -53,7 +54,75 @@ static void e1000_read_mac(void){
             e1000.mac[i] = mac[i];
         }
   }
-  while(1);
+}
+static void rx_init(void){
+  uint32_t base = e1000.dev->bar[0].viobase;
+
+ e1000.rx = (struct rx_desc_t *)sys_malloc(sizeof(struct rx_desc_t) * E1000_NUM_RX_DESC );
+
+  e1000.rx_now = 0;
+  *(volatile uint32_t *)(base + E1000_RDBAL) = addr_v2p((uint32_t)e1000.rx); 
+  *(volatile uint32_t *)(base + E1000_RDBAH) = 0;
+  *(volatile uint32_t *)(base + E1000_RDLEN) = sizeof(struct rx_desc_t) * E1000_NUM_RX_DESC;
+
+  *(volatile uint32_t *)(base + E1000_RDH) = 0;
+  *(volatile uint32_t *)(base + E1000_RDT) = E1000_NUM_RX_DESC - 1;
+
+  for (int i = 0; i < E1000_NUM_RX_DESC; i++){
+    e1000.rx[i].status = 0;
+    e1000.rx[i].addr = (uint32_t)addr_v2p((uint32_t)sys_malloc(2048));
+  }
+
+  uint32_t value = RCTL_EN | RCTL_LBM_NONE | RTCL_RDMTS_HALF | RCTL_BAM | RCTL_SECRC | RCTL_BSIZE_2048;
+  *(volatile uint32_t *)(base + E1000_RCTL) = value;
+}
+static void tx_init(void){
+  uint32_t base = e1000.dev->bar[0].viobase;
+
+  e1000.tx = (struct tx_desc_t *)sys_malloc(sizeof(struct tx_desc_t) * E1000_NUM_TX_DESC );
+
+  e1000.tx_now = 0;
+  *(volatile uint32_t *)(base + E1000_TDBAL) = addr_v2p((uint32_t)e1000.tx); 
+  *(volatile uint32_t *)(base + E1000_TDBAH) = 0;
+  *(volatile uint32_t *)(base + E1000_TDLEN) = sizeof(struct tx_desc_t) * E1000_NUM_TX_DESC;
+
+  *(volatile uint32_t *)(base + E1000_TDH) = 0;
+  *(volatile uint32_t *)(base + E1000_TDT) = E1000_NUM_TX_DESC - 1;
+
+  for (int i = 0; i < E1000_NUM_TX_DESC; i++){
+    e1000.rx[i].status = 1<<0;
+    e1000.rx[i].addr =0; 
+  }
+  uint32_t value = TCTL_EN | TCTL_PSP | TCTL_RTLC | (0x10 << TCTL_CT) | (0x40 << TCTL_COLD);
+  *(volatile uint32_t *)(base + E1000_TCTL) = value;
+} 
+
+static void e1000_reset(void){
+  uint32_t base = e1000.dev->bar[0].viobase;
+
+  e1000_read_mac();
+
+  // start link
+
+  *(volatile uint32_t *)(base + REG_CTRL) = *(volatile uint32_t *)(base + REG_CTRL) | CTRL_SLU;
+  // multicast
+  for (int i = E1000_MAT0; i < E1000_MAT1; i+=4){
+    *(volatile uint32_t *)(base + i) = 0;
+  }
+  // stop interrupt
+  *(volatile uint32_t *)(base + E1000_IMS) = 0;
+  rx_init();
+  tx_init();
+  int value = IMS_RXT0 | IMS_RXO | IMS_RXDMT0 | IMS_RXSEQ | IMS_LSC | IMS_TXQE | IMS_TXDW | IMS_TXD_LOW;
+
+  *(volatile uint32_t *)(base + E1000_IMS) = value;
+  
+
+}
+static void e1000_handler_irq(void){
+
+  printk("777777\n");
+while(1);
 }
 void e1000_init(void){
   
@@ -74,5 +143,13 @@ void e1000_init(void){
 
   pci_enable_busmastering(e1000.dev);
 
-  e1000_read_mac();
+e1000_reset();
+  
+  uint8_t e1000_irq = pci_interrupt(e1000.dev) + 0x20;
+register_handler(e1000_irq, e1000_handler_irq);
+
+
+
+  
+
 }

@@ -42,6 +42,7 @@ uint32_t pci_read_config(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset
 void pci_write_config(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset, uint32_t data);
 void pci_set_bars(struct pci_device * device);
 void pci_enable_busmastering(struct pci_device * device);
+uint8_t pci_interrupt(struct pci_device * device);
 #define PCI_BAR_TYPE_MEM 0
 #define PCI_BAR_IO_MASK (~0x3)
 #define PCI_BAR_MEM_MASK (~0xf)

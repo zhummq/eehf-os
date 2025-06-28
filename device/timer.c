@@ -30,7 +30,6 @@ static void frequency_set(uint8_t counter_port, \
 /* 先写入counter_value的低8位 */
    outb(counter_port, (uint8_t)counter_value);
 /* 再写入counter_value的高8位 */
-   //outb(counter_port, (uint8_t)counter_value >> 8); 作者这句代码会先将16位的counter_value强制类型转换为8位值，也就是原来16位值只留下了低8位，然后
    //又右移8未，所以最后送入counter_port的counter_value的高8位是8个0，这会导致时钟频率过高，出现GP异常
    outb(counter_port, (uint8_t) (counter_value>>8) );
 }

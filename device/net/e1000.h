@@ -2,14 +2,16 @@
 #define _NET_E1000_
 #include "pci.h"
 #include "stdint.h"
+#include "net.h"
 #define INTEL_VEND     0x8086  // Vendor ID for Intel 
 #define E1000_DEV      0x100E  //device ID for the e1000 Qemu, Bochs, and VirtualBox emmulated 
-#define MMIOADDR 0xeeb80000   // Virtual addr for mmio
+#define MMIOADDR 0xfeb80000   // Virtual addr for mmio
 #define REG_CTRL 0x0000
 #define CTRL_SLU (1<<6) // set link up
 #define E1000_MAT0 0x5200
 #define E1000_MAT1 0x5400 // multicast
 #define E1000_IMS 0xd0
+#define E1000_ICR 0xc0
 #define E1000_RDBAL 0x2800
 #define E1000_RDBAH 0x2804
 #define E1000_RDLEN 0x2808
@@ -55,6 +57,10 @@
 #define IMS_TXD_LOW 1<<15
 
 
+#define TCMD_EOP 1<<0
+#define TCMD_RPS 1<<4
+#define TCMD_RS 1<<3
+#define TCMD_IFCS 1<<1
 
 struct rx_desc_t {
         volatile uint64_t addr;
@@ -83,15 +89,15 @@ struct e1000_t {
 
    struct rx_desc_t *rx;
   uint16_t rx_now;
-	//desc_buff_t **rx_buff;
+	struct desc_buff_t **rx_buff;
 
 	struct tx_desc_t *tx;
    uint16_t tx_now;
-	//desc_buff_t **tx_buff;
+	struct desc_buff_t **tx_buff;
 
 //task_t *tx_waiter;
 };
-
+extern struct e1000_t e1000;
 void e1000_init(void);
-
+void send_packet(struct desc_buff_t * buff);
 #endif // DEBUG

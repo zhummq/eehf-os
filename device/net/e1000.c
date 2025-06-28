@@ -1,15 +1,18 @@
 #include "e1000.h"
 #include "interrupt.h"
+#include "net.h"
 #include "memory.h"
 #include "pci.h"
 #include "global.h"
 #include "stdio-kernel.h"
 struct e1000_t e1000;
+uint8_t e1000_irq;
+uint32_t base; 
 static void e1000_eeprom_detect(void){
-  volatile uint32_t * base = ( volatile uint32_t *)(e1000.dev->bar[0].viobase + 0x14);
-  *base = 0x1;
+  volatile uint32_t * vbase = ( volatile uint32_t *)(e1000.dev->bar[0].viobase + 0x14);
+  *vbase = 0x1;
   for (int i = 0;i < 1000 && !e1000.eeprom; i++){
-    uint32_t value = *(base);
+    uint32_t value = *(vbase);
     if(value & 0x10){
       e1000.eeprom = 1;
     } else {
@@ -20,14 +23,15 @@ static void e1000_eeprom_detect(void){
 
 
 static uint16_t e1000_eeprom_read(uint8_t addr){
-  volatile uint32_t * base =(volatile uint32_t *) (e1000.dev->bar[0].viobase + 0x14);
+  volatile uint32_t * vbase =(volatile uint32_t *) (e1000.dev->bar[0].viobase + 0x14);
+
   uint32_t tmp;
   if (e1000.eeprom){
-    *base =  1 | (uint32_t)addr << 8;
-    while (!((tmp = *base) & (1<<4)));
+    *vbase =  1 | (uint32_t)addr << 8;
+    while (!((tmp = *vbase) & (1<<4)));
   } else {
-    *base = 1 | (uint32_t)addr << 2;
-    while (!((tmp = *base) & (1<<1)));
+    *vbase = 1 | (uint32_t)addr << 2;
+    while (!((tmp = *vbase) & (1<<1)));
 
   }
   return (tmp >> 16) & 0xffff;
@@ -48,7 +52,7 @@ static void e1000_read_mac(void){
     e1000.mac[4] = val & 0xff;
     e1000.mac[5] = val >> 8;
   } else{
-     char *mac = (char *)e1000.dev->bar[0].iobase + 0x5400;
+     char *mac = (char *)e1000.dev->bar[0].viobase + 0x5400;
         for (int i = 5; i >= 0; i--)
         {
             e1000.mac[i] = mac[i];
@@ -56,13 +60,14 @@ static void e1000_read_mac(void){
   }
 }
 static void rx_init(void){
-  uint32_t base = e1000.dev->bar[0].viobase;
 
- e1000.rx = (struct rx_desc_t *)sys_malloc(sizeof(struct rx_desc_t) * E1000_NUM_RX_DESC );
-
+  e1000.rx = (struct rx_desc_t *)get_kernel_pages(1);
   e1000.rx_now = 0;
-  *(volatile uint32_t *)(base + E1000_RDBAL) = addr_v2p((uint32_t)e1000.rx); 
-  *(volatile uint32_t *)(base + E1000_RDBAH) = 0;
+  e1000.rx_buff = (struct desc_buff_t **)sys_malloc(sizeof(struct desc_buff_t *) * E1000_NUM_RX_DESC);
+  *(volatile uint32_t *)(base + E1000_RDBAL) = (uint32_t)addr_v2p((uint32_t)e1000.rx); 
+  *(volatile uint32_t *)(base + E1000_RDBAH) = (uint32_t)0;
+  uint32_t test1 = *(volatile uint32_t *)(base + E1000_RDBAL);
+  uint32_t test2 = *(volatile uint32_t *)(base + E1000_RDBAH);
   *(volatile uint32_t *)(base + E1000_RDLEN) = sizeof(struct rx_desc_t) * E1000_NUM_RX_DESC;
 
   *(volatile uint32_t *)(base + E1000_RDH) = 0;
@@ -70,16 +75,15 @@ static void rx_init(void){
 
   for (int i = 0; i < E1000_NUM_RX_DESC; i++){
     e1000.rx[i].status = 0;
-    e1000.rx[i].addr = (uint32_t)addr_v2p((uint32_t)sys_malloc(2048));
+    e1000.rx_buff[i] = (struct desc_buff_t *)sys_malloc(2048);
+    e1000.rx[i].addr = (uint32_t)addr_v2p((uint32_t)e1000.rx_buff[i]->payload);
   }
 
   uint32_t value = RCTL_EN | RCTL_LBM_NONE | RTCL_RDMTS_HALF | RCTL_BAM | RCTL_SECRC | RCTL_BSIZE_2048;
   *(volatile uint32_t *)(base + E1000_RCTL) = value;
 }
 static void tx_init(void){
-  uint32_t base = e1000.dev->bar[0].viobase;
-
-  e1000.tx = (struct tx_desc_t *)sys_malloc(sizeof(struct tx_desc_t) * E1000_NUM_TX_DESC );
+  e1000.tx = (struct tx_desc_t *)get_kernel_pages(1);
 
   e1000.tx_now = 0;
   *(volatile uint32_t *)(base + E1000_TDBAL) = addr_v2p((uint32_t)e1000.tx); 
@@ -87,18 +91,17 @@ static void tx_init(void){
   *(volatile uint32_t *)(base + E1000_TDLEN) = sizeof(struct tx_desc_t) * E1000_NUM_TX_DESC;
 
   *(volatile uint32_t *)(base + E1000_TDH) = 0;
-  *(volatile uint32_t *)(base + E1000_TDT) = E1000_NUM_TX_DESC - 1;
+  *(volatile uint32_t *)(base + E1000_TDT) = 0;
 
   for (int i = 0; i < E1000_NUM_TX_DESC; i++){
-    e1000.rx[i].status = 1<<0;
-    e1000.rx[i].addr =0; 
+    e1000.tx[i].status = 1<<0;
+    e1000.tx[i].addr =0; 
   }
   uint32_t value = TCTL_EN | TCTL_PSP | TCTL_RTLC | (0x10 << TCTL_CT) | (0x40 << TCTL_COLD);
   *(volatile uint32_t *)(base + E1000_TCTL) = value;
 } 
 
 static void e1000_reset(void){
-  uint32_t base = e1000.dev->bar[0].viobase;
 
   e1000_read_mac();
 
@@ -118,11 +121,46 @@ static void e1000_reset(void){
   *(volatile uint32_t *)(base + E1000_IMS) = value;
   
 
+
+}
+
+void send_packet(struct desc_buff_t * buff){
+  struct tx_desc_t * tx = &e1000.tx[e1000.tx_now];
+  tx->length = buff->length;
+  tx->addr = addr_v2p((uint32_t)buff->payload);
+  tx->status = 0;
+  tx->cmd =TCMD_EOP | TCMD_RPS |TCMD_RS | TCMD_IFCS;
+  uint16_t old_tx_now = e1000.tx_now;
+  e1000.tx_now = (old_tx_now + 1)%E1000_NUM_TX_DESC;
+  *(volatile uint32_t *)(base + E1000_TDT) = e1000.tx_now;
+  while(!(e1000.tx[old_tx_now].status & 0xf));
+  sys_free(buff);
+}
+static void receive_packet(void){
+
+  while(1){
+    struct rx_desc_t * rx = &e1000.rx[e1000.rx_now];
+    if(!(rx->status & (1<<0))) return;
+    struct desc_buff_t * buff = e1000.rx_buff[e1000.rx_now];
+    buff->length = rx->length;
+   // net_packet_in(buff);
+
+
+
+
+    e1000.rx_buff[e1000.rx_now] = (struct desc_buff_t *)sys_malloc(2048);
+    rx->addr =(uint32_t)addr_v2p((uint32_t)e1000.rx_buff[e1000.rx_now]->payload); 
+    rx->status = 0;
+    *(volatile uint32_t *)(base + E1000_RDT) =e1000.rx_now; 
+    e1000.rx_now = (e1000.rx_now + 1) % E1000_NUM_RX_DESC;
+  }
 }
 static void e1000_handler_irq(void){
-
-  printk("777777\n");
-while(1);
+  uint32_t status = *(volatile uint32_t *)(base + E1000_ICR);
+  if(status & IMS_RXT0){
+    receive_packet();
+  }
+  send_eoi(e1000_irq);
 }
 void e1000_init(void){
   
@@ -141,13 +179,14 @@ void e1000_init(void){
   map_area(MMIOADDR ,bar->iobase,bar->size); 
   bar->viobase = MMIOADDR;
 
+  base = e1000.dev->bar[0].viobase;
   pci_enable_busmastering(e1000.dev);
 
 e1000_reset();
   
-  uint8_t e1000_irq = pci_interrupt(e1000.dev) + 0x20;
+e1000_irq = pci_interrupt(e1000.dev) + 0x20;
 register_handler(e1000_irq, e1000_handler_irq);
-
+uint32_t status = *(volatile uint32_t *)(base + 0x0008);
 
 
   

@@ -6,7 +6,7 @@ HD60M_PATH=./hd3M.img
 AS=nasm
 CC=gcc
 LD=ld
-LIB= -I device/net -I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/ -I thread/ -I userprog/	-I fs/ -I shell/
+LIB= -I net/ -I device/net -I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/ -I thread/ -I userprog/	-I fs/ -I shell/
 ASFLAGS= -f elf -g
 CFLAGS= -Wall $(LIB) -c -fno-builtin -W -Wstrict-prototypes -Wmissing-prototypes -m32 -fno-stack-protector -g
 #-Wall warning all的意思，产生尽可能多警告信息，-fno-builtin不要采用内部函数，
@@ -26,7 +26,7 @@ OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/init.o \
 	$(BUILD_DIR)/stdio.o $(BUILD_DIR)/stdio-kernel.o $(BUILD_DIR)/ide.o $(BUILD_DIR)/fs.o $(BUILD_DIR)/inode.o \
 	$(BUILD_DIR)/file.o $(BUILD_DIR)/dir.o $(BUILD_DIR)/fork.o	$(BUILD_DIR)/shell.o $(BUILD_DIR)/buildin_cmd.o \
 	$(BUILD_DIR)/exec.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/wait_exit.o $(BUILD_DIR)/pipe.o\
-$(BUILD_DIR)/pci.o $(BUILD_DIR)/e1000.o
+$(BUILD_DIR)/pci.o $(BUILD_DIR)/e1000.o $(BUILD_DIR)/net.o $(BUILD_DIR)/eth.o $(BUILD_DIR)/arp.o
 #顺序最好是调用在前，实现在后
 
 ######################编译两个启动文件的代码#####################################
@@ -136,6 +136,12 @@ $(BUILD_DIR)/pipe.o:shell/pipe.c
 $(BUILD_DIR)/pci.o:device/pci.c
 	$(CC) $(CFLAGS) -o $@ $<
 $(BUILD_DIR)/e1000.o:device/net/e1000.c
+	$(CC) $(CFLAGS) -o $@ $<
+$(BUILD_DIR)/net.o:net/net.c
+	$(CC) $(CFLAGS) -o $@ $<
+$(BUILD_DIR)/eth.o:net/eth.c
+	$(CC) $(CFLAGS) -o $@ $<
+$(BUILD_DIR)/arp.o:net/arp.c
 	$(CC) $(CFLAGS) -o $@ $<
 
 ###################编译汇编内核代码#####################################################

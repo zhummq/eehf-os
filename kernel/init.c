@@ -13,6 +13,7 @@
 #include "pci.h"
 #include "e1000.h"
 #include "memory.h"
+#include "net.h"
 
 /*负责初始化所有模块 */
 void init_all() {
@@ -32,6 +33,7 @@ void init_all() {
 	syscall_init();   // 初始化系统调用
   pci_init();// pci_init
   e1000_init();
+  //net_init();
 	intr_enable();    // 后面的ide_init需要打开中断
 	ide_init();     // 初始化硬盘
 	filesys_init();   // 初始化文件系统

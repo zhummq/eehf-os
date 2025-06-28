@@ -16,7 +16,13 @@
 #define GET_EFLAGS(EFLAG_VAR) asm volatile("pushfl; popl %0" : "=g" (EFLAG_VAR))
 //pop到了eflags_var所在内存中，该约束自然用表示内存的字母，但是内联汇编中没有专门表示约束内存的字母，所以只能用
 //g 代表可以是任意寄存器，内存或立即数
-
+void send_eoi(uint8_t irq){
+  irq -= 0x20;
+  if(irq >= 8){
+    outb(PIC_S_CTRL,(1<<5));
+  }
+  outb(PIC_M_CTRL,(1<<5));
+}
 extern uint32_t syscall_handler(void);    //定义的汇编中断处理程序代码
 
 //按照中断门描述符格式定义结构体

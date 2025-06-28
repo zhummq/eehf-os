@@ -97,7 +97,7 @@ void net_init(void){
   sema_init(&sema_out,0);
   thread_start("read_thread",20,read_thread,NULL);
   thread_start("write_thread",20,write_thread,NULL);
- // test_arp();
+  test_arp();
 }
 
 

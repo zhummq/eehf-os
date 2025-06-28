@@ -66,9 +66,7 @@ static void rx_init(void){
   e1000.rx_buff = (struct desc_buff_t **)sys_malloc(sizeof(struct desc_buff_t *) * E1000_NUM_RX_DESC);
   *(volatile uint32_t *)(base + E1000_RDBAL) = (uint32_t)addr_v2p((uint32_t)e1000.rx); 
   *(volatile uint32_t *)(base + E1000_RDBAH) = (uint32_t)0;
-  uint32_t test1 = *(volatile uint32_t *)(base + E1000_RDBAL);
-  uint32_t test2 = *(volatile uint32_t *)(base + E1000_RDBAH);
-  *(volatile uint32_t *)(base + E1000_RDLEN) = sizeof(struct rx_desc_t) * E1000_NUM_RX_DESC;
+ *(volatile uint32_t *)(base + E1000_RDLEN) = sizeof(struct rx_desc_t) * E1000_NUM_RX_DESC;
 
   *(volatile uint32_t *)(base + E1000_RDH) = 0;
   *(volatile uint32_t *)(base + E1000_RDT) = E1000_NUM_RX_DESC - 1;
@@ -186,9 +184,4 @@ e1000_reset();
   
 e1000_irq = pci_interrupt(e1000.dev) + 0x20;
 register_handler(e1000_irq, e1000_handler_irq);
-uint32_t status = *(volatile uint32_t *)(base + 0x0008);
-
-
-  
-
 }

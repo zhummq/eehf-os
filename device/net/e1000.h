@@ -22,6 +22,7 @@
 
 #define E1000_RCTL 0x100
 #define RCTL_EN 1<<1
+#define RCTL_UPE 1<<3
 #define RCTL_LBM_NONE 0b00<<6
 #define  RTCL_RDMTS_HALF 0b00<<8
 #define RCTL_BAM 1<<15

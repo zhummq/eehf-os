@@ -4,6 +4,7 @@
 #include "memory.h"
 #include "pci.h"
 #include "global.h"
+#include "string.h"
 #include "stdio-kernel.h"
 struct e1000_t e1000;
 uint8_t e1000_irq;
@@ -76,7 +77,7 @@ static void rx_init(void){
     e1000.rx_buff[i] = (struct desc_buff_t *)sys_malloc(2048);
     e1000.rx[i].addr = (uint32_t)addr_v2p((uint32_t)e1000.rx_buff[i]->payload);
   }
-
+//RCTL_UPE 
   uint32_t value = RCTL_EN | RCTL_LBM_NONE | RTCL_RDMTS_HALF | RCTL_BAM | RCTL_SECRC | RCTL_BSIZE_2048;
   *(volatile uint32_t *)(base + E1000_RCTL) = value;
 }
@@ -102,6 +103,14 @@ static void tx_init(void){
 static void e1000_reset(void){
 
   e1000_read_mac();
+  mac_addr mac;
+  memcpy(mac,e1000.mac,MAC_LEN);
+  *(uint8_t *)(base + 0x5408) = 0x40;
+uint32_t ral = mac[0] | (mac[1] << 8) | (mac[2] << 16) | (mac[3] << 24);
+uint32_t rah = mac[4] | (mac[5] << 8) | (1U << 31);  // 设置 VALID 位
+*(volatile uint32_t *)(base + 0x5400) = ral;  // RA(0).RAL
+*(volatile uint32_t *)(base + 0x5404) = rah;  // RA(0).RAH
+
 
   // start link
 
@@ -141,7 +150,7 @@ static void receive_packet(void){
     if(!(rx->status & (1<<0))) return;
     struct desc_buff_t * buff = e1000.rx_buff[e1000.rx_now];
     buff->length = rx->length;
-   // net_packet_in(buff);
+    net_packet_in(buff);
 
 
 

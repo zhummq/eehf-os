@@ -11,6 +11,7 @@ struct file
 {
     uint32_t fd_pos; // 记录当前文件操作的偏移地址,以0为起始,最大为文件大小-1
     uint32_t fd_flag;
+    uint32_t used;
     struct inode *fd_inode;
 };
 

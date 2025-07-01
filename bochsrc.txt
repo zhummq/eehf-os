@@ -17,6 +17,6 @@ cpu: model=pentium
 # 日志输出（可选）
 log: bochsout.txt
 debug_symbols: file=kernel.sym
-e1000: enabled=1, mac=00:0c:29:ab:cd:ef, ethmod=tuntap,ethdev=/dev/net/tun, script=/home/eehf/os-dev/tunconfig.sh
+e1000: enabled=1, mac=00:0c:29:ab:cd:ef, ethmod=tuntap,ethdev=/dev/net/tun,script=/home/eehf/os-dev/tunconfig.sh
 
 gdbstub: enabled=1, port=1234

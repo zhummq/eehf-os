@@ -3,6 +3,7 @@
 #include "net.h"
 #include "e1000.h"
 #include "stdint.h"
+#include "memory.h"
 
 #define ARP_OP_REQUEST 0x0001
 #define ARP_OP_REPLY 0x0002

@@ -380,10 +380,15 @@ void *sys_malloc(uint32_t size)
     }
     else
     { // 用户进程pcb中的pgdir会在为其分配页表时创建
-        PF = PF_USER;
-        pool_size = user_pool.pool_size;
-        mem_pool = &user_pool;
-        descs = cur_thread->u_block_desc;
+        PF = PF_KERNEL;
+        pool_size = kernel_pool.pool_size;
+        mem_pool = &kernel_pool;
+        descs = k_block_descs;
+
+       // PF = PF_USER;
+       // pool_size = user_pool.pool_size;
+        //mem_pool = &user_pool;
+      //descs = cur_thread->u_block_desc;
     }
 
     /* 若申请的内存不在内存池容量范围内则直接返回NULL */

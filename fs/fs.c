@@ -1,4 +1,5 @@
 #include "stdint.h"
+#include "net.h"
 #include "fs.h"
 #include "inode.h"
 #include "ide.h"
@@ -1121,4 +1122,5 @@ void sys_help(void)
  shortcut key:\n\
        ctrl+l: clear screen\n\
        ctrl+u: clear input\n\n");
+  test_dhcp();
 }

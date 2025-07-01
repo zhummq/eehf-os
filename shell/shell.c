@@ -171,6 +171,10 @@ static void cmd_execute(uint32_t argc, char **argv)
     else if (!strcmp("help", argv[0]))
     {
         buildin_help(argc, argv);
+    } else if (!strcmp("test",argv[0]))
+    {
+    test_dhcp();
+    
     }
     else
     { // 如果是外部命令,需要从磁盘上加载

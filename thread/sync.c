@@ -35,7 +35,6 @@ void sema_down(struct semaphore* psema) {
     }
 /* 若value为1或被唤醒后,会执行下面的代码,也就是获得了锁。*/
     psema->value--;
-    ASSERT(psema->value == 0);	    
 /* 恢复之前的中断状态 */
     intr_set_status(old_status);
 }
@@ -44,13 +43,12 @@ void sema_down(struct semaphore* psema) {
 void sema_up(struct semaphore* psema) {
 /* 关中断,保证原子操作 */
    enum intr_status old_status = intr_disable();
-   ASSERT(psema->value == 0);	    
+
+   psema->value++;
    if (!list_empty(&psema->waiters)) {   //判断信号量阻塞队列应为非空，这样才能执行唤醒操作
       struct task_struct* thread_blocked = elem2entry(struct task_struct, general_tag, list_pop(&psema->waiters));
       thread_unblock(thread_blocked);
    }
-   psema->value++;
-   ASSERT(psema->value == 1);	    
 /* 恢复之前的中断状态 */
    intr_set_status(old_status);
 }

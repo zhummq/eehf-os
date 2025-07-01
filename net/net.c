@@ -4,6 +4,11 @@
 #include "arp.h"
 #include "sync.h"
 #include "thread.h"
+#include "ipv4.h"
+#include "timer.h"
+#include "dhcp.h"
+#include "socket.h"
+#include "udp.h"
 #include "string.h"
 #include "e1000.h"
 struct netif_t netifs[4];
@@ -83,21 +88,53 @@ static void netif_init(mac_addr mac){
   memcpy(netifs[1].mac,mac,MAC_LEN);
   list_init(&netifs[1].rx_buff_list);
   list_init(&netifs[0].rx_buff_list);
-list_init(&netifs[1].tx_buff_list);
+  list_init(&netifs[1].tx_buff_list);
   list_init(&netifs[0].tx_buff_list);
 
 }
-static void test_arp(void){
+void test_dhcp(void){
   struct desc_buff_t * buff = sys_malloc(2048);
-  arp_out(netifs[1].mac,"\xc0\xa8\x01\x02","\xFF\xFF\xFF\xFF\xFF\xFF","\xc0\xa8\x01\x02",buff,ARP_OP_REQUEST);
+
+  arp_out(netifs[1].mac,"\xc0\xa8\x0b\x02","\xFF\xFF\xFF\xFF\xFF\xFF","\xc0\xa8\x0b\x84",buff,ARP_OP_REQUEST);
+ 
+ struct socket_t * socket =(struct socket_t * )sys_malloc(sizeof(struct socket_t)); 
+ socket->src_port = 68;
+ socket->dst_port = 67;
+ ip_addr src_ip= {'\x0','\x0','\x0','\x0'};
+ ip_addr dst_ip = {'\xff','\xff','\xff','\xff'};
+ set_arp_map(dst_ip,"\xFF\xFF\xFF\xFF\xFF\xFF");
+ memcpy(socket->src_ip,src_ip,IPV4_LEN);
+ memcpy(socket->dst_ip,dst_ip,IPV4_LEN);
+// dhcp_out(buff,socket,DHCP_REQUEST,ticks,OPTIONS_DISCOVER);
+}
+void set_arp_map(ip_addr ip,mac_addr mac){
+  struct netif_t *netif = &netifs[1];
+  for (int i = 0;i < ARP_MAP_NUM;i++){
+    if (!netif->arp_map[i].used){
+      memcpy(netif->arp_map[i].ip,ip,IPV4_LEN);
+      memcpy(netif->arp_map[i].mac,mac,MAC_LEN);
+      netif->arp_map[i].used = 1;
+      break;
+    }
+  }
+
+}
+char * get_mac(ip_addr ip){
+  struct netif_t* netif = &netifs[1];
+  for (int i = 0;i < ARP_MAP_NUM;i++){
+    if (netif->arp_map[i].used && !memcmp(netif->arp_map[i].ip,ip,IPV4_LEN)){
+      return netif->arp_map[i].mac;
+    }
+  }
+  return NULL;
 }
 void net_init(void){
   netif_init(e1000.mac);
   sema_init(&sema_in,0);
   sema_init(&sema_out,0);
-  thread_start("read_thread",20,read_thread,NULL);
-  thread_start("write_thread",20,write_thread,NULL);
-  test_arp();
+  thread_start("read_thread",31,read_thread,NULL);
+  thread_start("write_thread",31,write_thread,NULL);
+  
 }
 
 

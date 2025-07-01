@@ -14,8 +14,9 @@ int32_t get_free_slot_in_global(void)
     uint32_t fd_idx = 3;
     while (fd_idx < MAX_FILE_OPEN)
     {
-        if (file_table[fd_idx].fd_inode == NULL)
+        if (file_table[fd_idx].used == 0)
         {
+            file_table[fd_idx].used = 1;
             break;
         }
         fd_idx++;
@@ -241,6 +242,7 @@ int32_t file_close(struct file *file)
     file->fd_inode->write_deny = false;
     inode_close(file->fd_inode);
     file->fd_inode = NULL; // 使文件结构可用
+    file->used = 0;
     return 0;
 }
 

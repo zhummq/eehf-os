@@ -74,7 +74,7 @@ void net_packet_in(struct desc_buff_t * buff){
 }
 void net_packet_out(struct desc_buff_t * buff){
   struct eth_t * eth = (struct eth_t *)buff->payload;
-  struct netif_t * netif = find_netif(eth->dst);
+  struct netif_t * netif = find_netif(eth->src);
   if(netif){
     list_append(&netif->tx_buff_list,&buff->node);
     sema_up(&sema_out);
@@ -82,10 +82,11 @@ void net_packet_out(struct desc_buff_t * buff){
 
     sys_free(buff);
   } 
-  
 }
 static void netif_init(mac_addr mac){
   memcpy(netifs[1].mac,mac,MAC_LEN);
+  memcpy(netifs[1].ip,"\xc0\xa8\x0b\x02",IPV4_LEN);
+  set_arp_map("\xc0\xa8\x0b\x01","\xce\x77\x25\x98\x52\x7b");
   list_init(&netifs[1].rx_buff_list);
   list_init(&netifs[0].rx_buff_list);
   list_init(&netifs[1].tx_buff_list);
@@ -95,7 +96,7 @@ static void netif_init(mac_addr mac){
 void test_dhcp(void){
   struct desc_buff_t * buff = sys_malloc(2048);
 
-  arp_out(netifs[1].mac,"\xc0\xa8\x0b\x02","\xFF\xFF\xFF\xFF\xFF\xFF","\xc0\xa8\x0b\x84",buff,ARP_OP_REQUEST);
+  arp_out(netifs[1].mac,"\xc0\xa8\x0b\x02","\xce\x77\x25\x98\x52\x7b","\xc0\xa8\x0b\x84",buff,ARP_OP_REPLY);
  
  struct socket_t * socket =(struct socket_t * )sys_malloc(sizeof(struct socket_t)); 
  socket->src_port = 68;
@@ -127,6 +128,24 @@ char * get_mac(ip_addr ip){
     }
   }
   return NULL;
+}
+uint16_t checksum(uint8_t *data,uint32_t length){
+ uint32_t checksum = 0;
+
+    for (uint32_t i = 0; i < length; i += 2) {
+        uint16_t word = data[i] << 8;
+        if (i + 1 < length) {
+            word |= data[i + 1];
+        }
+        checksum += word;
+    }
+
+    // 不断将高 16 位加到低 16 位
+    while (checksum >> 16) {
+        checksum = (checksum & 0xFFFF) + (checksum >> 16);
+    }
+
+    return htons((uint16_t)(~checksum));
 }
 void net_init(void){
   netif_init(e1000.mac);

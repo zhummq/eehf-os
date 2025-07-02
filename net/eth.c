@@ -10,6 +10,9 @@ void eth_in(struct desc_buff_t * buff){
     case ETH_TYPE_ARP:
     arp_in(buff);
     break;
+    case ETH_TYPE_IPV4:
+    ipv4_in(buff);
+    break;
     case ETH_TYPE_TEST:
     break;
   }

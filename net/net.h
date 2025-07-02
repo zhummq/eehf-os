@@ -28,7 +28,7 @@ struct desc_buff_t {
 }__attribute__((aligned(16)));
 extern struct netif_t netifs[4];
 
-
+uint16_t checksum(uint8_t *data,uint32_t length);
 void set_arp_map(ip_addr ip,mac_addr mac);
 char *get_mac(ip_addr ip);
 void net_packet_out(struct desc_buff_t * buff);

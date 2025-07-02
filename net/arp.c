@@ -7,8 +7,10 @@ void arp_in(struct desc_buff_t * buff){
   struct arp_t *arp = (struct arp_t *)eth->payload;
   switch (ntohs(arp->op)) {
     case ARP_OP_REQUEST:
+      if (!memcmp(netifs[1].ip,arp->dst_ip,IPV4_LEN)){
       struct desc_buff_t * buff_reply = (struct desc_buff_t *)sys_malloc(2048);
       arp_out(netifs[1].mac,netifs[1].ip,arp->src_mac,arp->src_ip,buff_reply,ARP_OP_REPLY);
+      }
       sys_free(buff);// broast
     break;
       // map for ip,mac

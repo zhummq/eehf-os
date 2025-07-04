@@ -33,7 +33,7 @@ git clone https://github.com/zhummq/eehf-os.git
 cd eehf-os
 make run  # 启动 Bochs 模拟器
 ```
-```
+
 
 
 

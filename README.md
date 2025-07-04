@@ -20,6 +20,12 @@
 - 编程语言：C + 少量汇编
 - 工具链：`gcc`, `make`, `nasm`, `gdb`
 
+## 📚 学习参考
+- 《操作系统真相还原》
+-  [Intel E1000 规范文档](https://pdos.csail.mit.edu/6.828/2018/readings/hardware/8254x_GBe_SDM.pdf)
+- b站视频 [手写网络协议栈](https://www.bilibili.com/video/BV1CJM8z8Eb4?vd_source=f9e49111868edc5258768c0629d63793)
+
+
 ## 🚀 快速开始
 
 ```bash
@@ -30,7 +36,4 @@ make run  # 启动 Bochs 模拟器
 ```
 
 
-## 📚 学习参考
-- 《操作系统真相还原》
--  [Intel E1000 规范文档](https://pdos.csail.mit.edu/6.828/2018/readings/hardware/8254x_GBe_SDM.pdf)
-- b站视频 [写网络协议栈](https://www.bilibili.com/video/BV1CJM8z8Eb4?vd_source=f9e49111868edc5258768c0629d63793)
+

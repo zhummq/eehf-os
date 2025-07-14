@@ -185,13 +185,17 @@ clean:
 build:$(BUILD_DIR)/kernel.bin
 #执行build需要依赖kernel.bin，但是一开始没有，就会递归执行之前写好的语句编译kernel.bin
 qemu:
-	qemu-system-i386 -cpu pentium -drive file=hd3M.img,media=disk,index=0,format=raw\
+	sudo qemu-system-i386 -cpu pentium -drive file=hd3M.img,media=disk,index=0,format=raw\
 		-drive file=hd80M.img,media=disk,index=1,format=raw\
-		-no-reboot -no-shutdown
+		-no-reboot -no-shutdown\
+		-netdev tap,id=net0,ifname=tap0,script=no,downscript=no\
+		-device e1000,netdev=net0,mac=00:FF:26:E4:55:94
 qemu-gdb:
-	qemu-system-i386 -cpu pentium -drive file=hd3M.img,media=disk,index=0,format=raw\
+	sudo qemu-system-i386 -cpu pentium -drive file=hd3M.img,media=disk,index=0,format=raw\
 		-drive file=hd80M.img,media=disk,index=1,format=raw\
-		-no-reboot -no-shutdown -s -S
+		-no-reboot -no-shutdown -s -S\
+    -netdev tap,id=net0,ifname=tap0,script=no,downscript=no\
+		-device e1000,netdev=net0,mac=00:FF:26:E4:55:94
 #生成可以被GDB理解的符号表，用于GDB调试
 gdb_symbol:
 	objcopy --only-keep-debug $(BUILD_DIR)/kernel.bin $(BUILD_DIR)/kernel.sym

@@ -50,78 +50,76 @@ SECTION MBR vstart=0x7c00
 
     mov byte [gs:0x08],'R'
     mov byte [gs:0x09],0xA4
+    mov esi,LOADER_START_SECTOR   ; ¿¿¿¿lba¿¿
+    mov di,LOADER_BASE_ADDR            ; ¿¿¿¿¿
+    mov cl,4  
 
-    mov eax,LOADER_START_SECTOR ; ÆðÊ¼ÉÈÇølbaµØÖ·
-    mov bx,LOADER_BASE_ADDR ; Ð´ÈëµÄµØÖ·
-    mov cx,4 ; ´ý¶ÁÈëµÄÉÈÇøÊý
     call rd_disk_m_16 ; ÒÔÏÂ¶ÁÈ¡³ÌÐòµÄÆðÊ¼²¿·Ö£¨Ò»¸öÉÈÇø£©
 
     jmp LOADER_BASE_ADDR + 0x300
-
-                                    ;-------------------------------------------------------------------------------
-                                    ;¹¦ÄÜ:¶ÁÈ¡Ó²ÅÌn¸öÉÈÇø
 rd_disk_m_16:
-                                    ;-------------------------------------------------------------------------------
-                        ; eax=LBAÉÈÇøºÅ
-                        ; ebx=½«Êý¾ÝÐ´ÈëµÄÄÚ´æµØÖ·
-                        ; ecx=¶ÁÈëµÄÉÈÇøÊý
-    mov esi,eax ;±¸·Ýeax
-    mov di,cx ;±¸·Ýcx
-                                    ;¶ÁÐ´Ó²ÅÌ:
-                                    ;µÚ1²½£ºÑ¡ÔñÌØ¶¨Í¨µÀµÄ¼Ä´æÆ÷£¬ÉèÖÃÒª¶ÁÈ¡µÄÉÈÇøÊý
-    mov dx,0x1f2
-    mov al,cl
-    out dx,al ;¶ÁÈ¡µÄÉÈÇøÊý
-
-    mov eax,esi ;»Ö¸´ax
-
-                                    ;µÚ2²½£ºÔÚÌØ¶¨Í¨µÀ¼Ä´æÆ÷ÖÐ·ÅÈëÒª¶ÁÈ¡ÉÈÇøµÄµØÖ·£¬½«LBAµØÖ·´æÈë0x1f3 ~ 0x1f6
-                                    ;LBAµØÖ·7~0Î»Ð´Èë¶Ë¿Ú0x1f3
-    mov dx,0x1f3
-    out dx,al
-
-                                    ;LBAµØÖ·15~8Î»Ð´Èë¶Ë¿Ú0x1f4
-    mov cl,8
-    shr eax,cl
-    mov dx,0x1f4
-    out dx,al
-
-                                    ;LBAµØÖ·23~16Î»Ð´Èë¶Ë¿Ú0x1f5
-    shr eax,cl
-    mov dx,0x1f5
-    out dx,al
-
-    shr eax,cl
-    and al,0x0f ;lbaµÚ24~27Î»
-    or al,0xe0 ; ÉèÖÃ7¡«4Î»Îª1110,±íÊ¾lbaÄ£Ê½
-    mov dx,0x1f6
-    out dx,al
-
-                                    ;µÚ3²½£ºÏò0x1f7¶Ë¿ÚÐ´Èë¶ÁÃüÁî£¬0x20
-    mov dx,0x1f7
-    mov al,0x20
-    out dx,al
-
-                                    ;µÚ4²½£º¼ì²âÓ²ÅÌ×´Ì¬
-.not_ready:
-                                    ;Í¬Ò»¶Ë¿Ú£¬Ð´Ê±±íÊ¾Ð´ÈëÃüÁî×Ö£¬¶ÁÊ±±íÊ¾¶ÁÈëÓ²ÅÌ×´Ì¬
-    nop
+    ; 1: ¿¿disk status
+    mov dx,0x1f7     ; 0x1f7=primary channel's status
+.not_ready1:
+    nop              ; ¿¿¿¿¿¿¿¿
     in al,dx
-    and al,0x88 ;µÚ4Î»Îª1±íÊ¾Ó²ÅÌ¿ØÖÆÆ÷ÒÑ×¼±¸ºÃÊý¾Ý´«Êä£¬µÚ7Î»Îª1±íÊ¾Ó²ÅÌÃ¦
-    cmp al,0x08
-    jnz .not_ready ;ÈôÎ´×¼±¸ºÃ£¬¼ÌÐøµÈ¡£
+    and al,0xc0      ; 0xc0=1100_0000b¿bit 6~7
+    cmp al,0x40      ; ¿¿bit 6, ¿¿¿¿¿¿
+    jnz .not_ready1  ;¿¿¿¿¿¿¿¿¿
+    ; 2: ¿¿¿¿¿¿¿¿¿
+    mov dx,0x1f2         ; 0x1f2=primary channel's sector count, 8 ¿¿¿¿¿¿¿¿¿ 255 ¿¿¿¿¿ 0¿¿¿¿¿¿¿ 256 ¿¿¿, ¿`¿¿¿¿¿¿¿¿¿¿¿¿`
+    mov al,cl
+    out dx,al            ;¿¿¿¿¿¿
+    ; 3: ¿LBA¿¿¿¿0x1f3 ~ 0x1f6
+    mov eax,esi
+    ;LBA¿¿7~0¿¿¿¿¿0x1f3
+    mov dx,0x1f3      ;   0x1f3=primary channel's lba low
+    out dx,al
 
-                                    ;µÚ5²½£º´Ó0x1f0¶Ë¿Ú¶ÁÊý¾Ý
-    mov ax, di ;diµ±ÖÐ´æ´¢µÄÊÇÒª¶ÁÈ¡µÄÉÈÇøÊý
-    mov dx, 256 ;Ã¿¸öÉÈÇø512×Ö½Ú£¬Ò»´Î¶ÁÈ¡Á½¸ö×Ö½Ú£¬ËùÒÔÒ»¸öÉÈÇø¾ÍÒª¶ÁÈ¡256´Î£¬ÓëÉÈÇøÊýÏà³Ë£¬¾ÍµÈµÃµ½×Ü¶ÁÈ¡´ÎÊý
-    mul dx ;8Î»³Ë·¨Óë16Î»³Ë·¨ÖªÊ¶²é¿´Êép133,×¢Òâ£º16Î»³Ë·¨»á¸Ä±ädxµÄÖµ£¡£¡£¡£¡
-    mov cx, ax ; µÃµ½ÁËÒª¶ÁÈ¡µÄ×Ü´ÎÊý£¬È»ºó½«Õâ¸öÊý×Ö·ÅÈëcxÖÐ
-    mov dx, 0x1f0
+    ;LBA¿¿15~8¿¿¿¿¿0x1f4
+    shr eax,8         ;   eax¿¿¿8¿
+    mov dx,0x1f4      ;   0x1f4=primary channel's lba mid
+    out dx,al
+
+    ;LBA¿¿23~16¿¿¿¿¿0x1f5
+    shr eax,8
+    mov dx,0x1f5      ;   0x1f5=primary channel's lba high
+    out dx,al
+
+    ; 4: ¿¿device¿¿
+    shr eax,8
+    and al,0x0f      ; lba¿24~27¿, ¿¿bit¿¿0
+    or al,0xe0       ; ¿¿7¿4¿¿1110,¿¿lba¿¿, ¿¿¿¿¿
+    mov dx,0x1f6     ; 0x1f6=primary channel's device
+    out dx,al
+
+    ; 5¿¿0x1f7¿¿¿¿¿¿¿¿0x20
+    mov dx,0x1f7     ; 0x1f7=primary channel's status
+    mov al,0x20      ; 0x20, ¿¿¿¿
+    out dx,al
+
+    mov bl,cl
+
+.next_sector:
+    ; 6: ¿¿disk status
+.not_ready2:
+    mov dx,0x1f7
+    in al,dx         ; ¿¿status ¿¿¿¿¿¿ 0x1f7 ¿¿, ¿¿¿¿¿¿¿dx ¿¿¿¿
+    and al,0x88      ;¿4¿¿1¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿7¿¿1¿¿¿¿¿
+    cmp al,0x08
+    jnz .not_ready2       ;¿¿¿¿¿¿¿¿¿
+
+    ; 7¿¿0x1f0¿¿¿¿¿. data ¿¿¿¿ 16 ¿¿¿¿¿ in ¿¿¿¿¿ 2 ¿¿
+    mov cx, 256       ; cx¿¿¿¿¿. ¿¿¿¿¿512¿¿¿¿¿¿¿2¿¿¿¿¿512/2¿=256
+    mov dx, 0x1f0    ; 0x1f0=primary channel's data
 .go_on_read:
     in ax,dx
-    mov [bx],ax
-    add bx,2
-    loop .go_on_read
+    mov [di],ax      ; di¿¿¿¿DISK_BUFFER
+    add di,2
+    loop .go_on_read ; loop¿cx-=1, ¿¿¿cx¿¿¿0¿¿¿¿¿¿¿¿¿¿¿
+    dec bl
+    cmp bl,0
+    jnz .next_sector
     ret
 
     times 510-($-$$) db 0

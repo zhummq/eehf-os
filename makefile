@@ -184,11 +184,19 @@ clean:
 
 build:$(BUILD_DIR)/kernel.bin
 #执行build需要依赖kernel.bin，但是一开始没有，就会递归执行之前写好的语句编译kernel.bin
-
+qemu:
+	qemu-system-i386 -cpu pentium -drive file=hd3M.img,media=disk,index=0,format=raw\
+		-drive file=hd80M.img,media=disk,index=1,format=raw\
+		-no-reboot -no-shutdown
+qemu-gdb:
+	qemu-system-i386 -cpu pentium -drive file=hd3M.img,media=disk,index=0,format=raw\
+		-drive file=hd80M.img,media=disk,index=1,format=raw\
+		-no-reboot -no-shutdown -s -S
 #生成可以被GDB理解的符号表，用于GDB调试
 gdb_symbol:
 	objcopy --only-keep-debug $(BUILD_DIR)/kernel.bin $(BUILD_DIR)/kernel.sym
 run:
 	sudo /home/eehf/bochs-e1000-2.8/bin/bochs 
-all:mk_dir boot build hd gdb_symbol run
+all:mk_dir boot build hd gdb_symbol qemu
+gdb:mk_dir boot build hd gdb_symbol qemu-gdb
 #make all 就是依次执行mk_dir build hd gdb_symbol

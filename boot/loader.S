@@ -95,6 +95,7 @@ loader_start:
 
 [bits 32]
 p_mode_start:
+    cli
     mov ax,SELECTOR_DATA
     mov ds,ax
     mov es,ax
@@ -104,9 +105,9 @@ p_mode_start:
     mov gs,ax
 
                                                         ; -------------------------   加载kernel  ----------------------
-    mov eax, KERNEL_START_SECTOR                        ; kernel.bin所在的扇区号
-    mov ebx, KERNEL_BIN_BASE_ADDR                       ; 从磁盘读出后，写入到ebx指定的地址
-    mov ecx, 200			                            ; 读入的扇区数
+    mov esi, KERNEL_START_SECTOR        ; kernel.bin所在的扇区号
+    mov edi, KERNEL_BIN_BASE_ADDR       ; 从磁盘读出后，写入到ebx指定的地址
+    mov cl, 200                ; 读入的扇区数
     call rd_disk_m_32
                                                         
     call setup_page                                     ;创建页目录表的函数,我们的页目录表必须放在1M开始的位置，所以必须在开启保护模式后运行
@@ -234,83 +235,67 @@ setup_page:                                             ;-----------------------
 
                                                         ;-------------------------------------------------------------------------------
                                                         ;功能:读取硬盘n个扇区
-rd_disk_m_32:	   
-                                                        ;-------------------------------------------------------------------------------
-				                                        ; eax=LBA扇区号
-				                                        ; ebx=将数据写入的内存地址
-				                                        ; ecx=读入的扇区数
-    mov esi,eax	                                        ;备份eax
-    mov di,cx		                                    ;备份cx
-                                                        ;读写硬盘:
-                                                        ;第1步：选择特定通道的寄存器，设置要读取的扇区数
-    mov dx,0x1f2
-    mov al,cl
-    out dx,al                                           ;读取的扇区数
-
-    mov eax,esi	                                        ;恢复ax
-
-                                                        ;第2步：在特定通道寄存器中放入要读取扇区的地址，将LBA地址存入0x1f3 ~ 0x1f6
-                                                        ;LBA地址7~0位写入端口0x1f3
-    mov dx,0x1f3                       
-    out dx,al                          
-
-                                                        ;LBA地址15~8位写入端口0x1f4
-    mov cl,8
-    shr eax,cl
-    mov dx,0x1f4
-    out dx,al
-
-                                                        ;LBA地址23~16位写入端口0x1f5
-    shr eax,cl
-    mov dx,0x1f5
-    out dx,al
-
-    shr eax,cl
-    and al,0x0f	                                        ;lba第24~27位
-    or al,0xe0	                                        ; 设置7～4位为1110,表示lba模式
-    mov dx,0x1f6
-    out dx,al
-
-                                                        ;第3步：向0x1f7端口写入读命令，0x20 
-    mov dx,0x1f7
-    mov al,0x20                        
-    out dx,al
-
-                                                        ;第4步：检测硬盘状态
-.not_ready:
-                                                        ;同一端口，写时表示写入命令字，读时表示读入硬盘状态
-    nop
+rd_disk_m_32:
+    ; 1: 检查disk status
+    mov dx,0x1f7     ; 0x1f7=primary channel's status
+.not_ready1:
+    nop              ; 只是为了增加延迟
     in al,dx
-    and al,0x88	                                        ;第4位为1表示硬盘控制器已准备好数据传输，第7位为1表示硬盘忙
-    cmp al,0x08
-    jnz .not_ready	                                    ;若未准备好，继续等。
+    and al,0xc0      ; 0xc0=1100_0000b取bit 6~7
+    cmp al,0x40      ; 检查bit 6, 设备是否就绪
+    jnz .not_ready1  ;若未准备好，继续等
+    ; 2: 设置要读取的扇区数
+    mov dx,0x1f2         ; 0x1f2=primary channel's sector count, 8 位寄存器，最大值为 255 ，若指定为 0，则表示要操作 256 个扇区, 见`硬盘控制器主要端口寄存器`
+    mov al,cl
+    out dx,al            ;读取的扇区数
+    ; 3: 将LBA地址存入0x1f3 ~ 0x1f6
+    mov eax,esi
+    ;LBA地址7~0位写入端口0x1f3
+    mov dx,0x1f3      ;   0x1f3=primary channel's lba low
+    out dx,al
 
-                                                        ;第5步：从0x1f0端口读数据
-    mov ax, di                                          ;di当中存储的是要读取的扇区数
-    mov dx, 256                                         ;每个扇区512字节，一次读取两个字节，所以一个扇区就要读取256次，与扇区数相乘，就等得到总读取次数
-    mul dx                                              ;8位乘法与16位乘法知识查看书p133,注意：16位乘法会改变dx的值！！！！
-    mov cx, ax	                                        ; 得到了要读取的总次数，然后将这个数字放入cx中
-    mov dx, 0x1f0
+    ;LBA地址15~8位写入端口0x1f4
+    shr eax,8         ;   eax值右移8位
+    mov dx,0x1f4      ;   0x1f4=primary channel's lba mid
+    out dx,al
+
+    ;LBA地址23~16位写入端口0x1f5
+    shr eax,8
+    mov dx,0x1f5      ;   0x1f5=primary channel's lba high
+    out dx,al
+
+    ; 4: 设置device端口
+    shr eax,8
+    and al,0x0f      ; lba第24~27位, 其他bit置为0
+    or al,0xe0       ; 设置7～4位为1110,表示lba模式, 并使用主盘
+    mov dx,0x1f6     ; 0x1f6=primary channel's device
+    out dx,al
+
+    ; 5：向0x1f7端口写入读命令，0x20
+    mov dx,0x1f7     ; 0x1f7=primary channel's status
+    mov al,0x20      ; 0x20, 读取扇区        
+    out dx,al
+
+    mov bl,cl
+
+.next_sector:
+    ; 6: 检查disk status
+.not_ready2:
+    mov dx,0x1f7
+    in al,dx         ; 因为status 寄存器依然是 0x1f7 端口, 所以不需要再为dx 重新赋值
+    and al,0x88      ;第4位为1表示硬盘控制器已准备好数据传输，第7位为1表示硬盘忙
+    cmp al,0x08
+    jnz .not_ready2       ;若未准备好，继续等
+
+    ; 7：从0x1f0端口读数据. data 寄存器是 16 位，即每次 in 操作只读入 2 字节
+    mov cx, 256       ; cx是操作次数. 一个扇区有512字节，每次读入2个字，共需512/2次=256
+    mov dx, 0x1f0    ; 0x1f0=primary channel's data
 .go_on_read:
     in ax,dx
-    mov [ebx],ax                                        ;与rd_disk_m_16相比，就是把这两句的bx改成了ebx
-    add ebx,2		        
-                                                        ; 由于在实模式下偏移地址为16位,所以用bx只会访问到0~FFFFh的偏移。
-                                                        ; loader的栈指针为0x900,bx为指向的数据输出缓冲区,且为16位，
-                                                        ; 超过0xffff后,bx部分会从0开始,所以当要读取的扇区数过大,待写入的地址超过bx的范围时，
-                                                        ; 从硬盘上读出的数据会把0x0000~0xffff的覆盖，
-                                                        ; 造成栈被破坏,所以ret返回时,返回地址被破坏了,已经不是之前正确的地址,
-                                                        ; 故程序出会错,不知道会跑到哪里去。
-                                                        ; 所以改为ebx代替bx指向缓冲区,这样生成的机器码前面会有0x66和0x67来反转。
-                                                        ; 0X66用于反转默认的操作数大小! 0X67用于反转默认的寻址方式.
-                                                        ; cpu处于16位模式时,会理所当然的认为操作数和寻址都是16位,处于32位模式时,
-                                                        ; 也会认为要执行的指令是32位.
-                                                        ; 当我们在其中任意模式下用了另外模式的寻址方式或操作数大小(姑且认为16位模式用16位字节操作数，
-                                                        ; 32位模式下用32字节的操作数)时,编译器会在指令前帮我们加上0x66或0x67，
-                                                        ; 临时改变当前cpu模式到另外的模式下.
-                                                        ; 假设当前运行在16位模式,遇到0X66时,操作数大小变为32位.
-                                                        ; 假设当前运行在32位模式,遇到0X66时,操作数大小变为16位.
-                                                        ; 假设当前运行在16位模式,遇到0X67时,寻址方式变为32位寻址
-                                                        ; 假设当前运行在32位模式,遇到0X67时,寻址方式变为16位寻址.
-    loop .go_on_read
+    mov [edi],ax      ; 使用edi, 因为KERNEL_BIN_BASE_ADDR超过了di
+    add edi,2
+    loop .go_on_read ; loop会cx-=1, 并判断cx是否为0进而继续循环还是往下走
+    dec bl
+    cmp bl,0
+    jnz .next_sector
     ret

@@ -1,84 +1,11 @@
 #include "pci.h"
 #include "global.h"
+#include "memory.h"
 #include "stdint.h"
 #include "io.h"
 struct pci_devices device_arry;
-static uint32_t pci_addr(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset){
-  uint32_t address;
-  uint32_t lbus = (uint32_t)bus;
-  uint32_t lslot = (uint32_t)slot;
-  uint32_t lfunc = (uint32_t)func;
-  uint32_t loffset  = (uint32_t)offset;
 
 
-  address = (uint32_t)((lbus << 16) | (lslot << 11) |
-              (lfunc << 8) | (loffset & 0xFC) | ((uint32_t)0x80000000));
-
-  return address;
-}
-
-
-uint32_t pci_read_config(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset){
-    uint32_t address = pci_addr(bus,slot,func,offset); 
-    outl(PCI_ADDR, address);
-
-  return inl(PCI_DATA);
-}
-uint8_t pci_interrupt(struct pci_device * device){
-  uint32_t data = pci_read_config(device->bus,device->slot,device->func,0x3c);
-  return data & 0xff;
-}
-
-static void pci_scan(void){
-  int bus, slot, func = 0;
-  for (bus = 0; bus < 256; bus++){
-    for (slot = 0; slot < 32; slot++){
-      for (func = 0; func <8; func++){
-      uint32_t value = pci_read_config(bus,slot,func,0);
-      uint32_t venderId = value & 0x0000ffff;
-      if (venderId != 0x0000ffff){
-        // invalid value
-        int next = device_arry.next;
-        struct pci_device * device = &device_arry.devices[next];
-        device_arry.next++;
-
-        device->device_id = value >> 16;
-        device->vender_id = venderId;
-        device->bus = bus;
-        device->slot = slot;
-        device->func = func;
-
-
-      }
-      }
-    }
-  }
-}
-
-
-void pci_write_config(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset, uint32_t data){
-  uint32_t address = pci_addr(bus,slot,func,offset);
-  outl(PCI_ADDR, address);
-  outl(PCI_DATA, data);
-}
-struct pci_device * find_device(uint16_t vender_id,uint16_t device_id){
-  int end = device_arry.next;
-  int i = 0;
-  for (i=0; i<end; i++){
-    struct pci_device * device = &device_arry.devices[i];
-    if (vender_id == device->vender_id && device_id == device->device_id){
-      return device;
-    }
-  }
-  return NULL;
-}
-
-
-void pci_enable_busmastering(struct pci_device * device){
-  uint32_t data = pci_read_config(device->bus,device->slot,device->func,0x4);
-  data |= PCI_COMMAND_MASTER;
-  pci_write_config(device->bus,device->slot,device->func,0x4,data);
-}
 static uint32_t pci_size(uint32_t base, uint32_t mask){
    uint32_t size = base & mask;
    return ~size + 1;
@@ -113,6 +40,100 @@ void pci_set_bars(struct pci_device * device){
     }
 
   }
+}
+
+
+static uint32_t pci_addr(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset){
+  uint32_t address;
+  uint32_t lbus = (uint32_t)bus;
+  uint32_t lslot = (uint32_t)slot;
+  uint32_t lfunc = (uint32_t)func;
+  uint32_t loffset  = (uint32_t)offset;
+
+
+  address = (uint32_t)((lbus << 16) | (lslot << 11) |
+              (lfunc << 8) | (loffset & 0xFC) | ((uint32_t)0x80000000));
+
+  return address;
+}
+
+
+uint32_t pci_read_config(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset){
+    uint32_t address = pci_addr(bus,slot,func,offset); 
+    outl(PCI_ADDR, address);
+
+  return inl(PCI_DATA);
+}
+uint8_t pci_interrupt(struct pci_device * device){
+  uint32_t data = pci_read_config(device->bus,device->slot,device->func,0x3c);
+  return data & 0xff;
+}
+
+static void pci_scan(void){
+  int bus, slot, func = 0;
+  for (bus = 0; bus < 256; bus++){
+    for (slot = 0; slot < 32; slot++){
+      for (func = 0; func <8; func++){
+      uint32_t value = pci_read_config(bus,slot,func,0);
+            uint32_t venderId = value & 0x0000ffff;
+      if (venderId != 0x0000ffff){
+        // invalid value
+        int next = device_arry.next;
+        struct pci_device * device = &device_arry.devices[next];
+        device_arry.next++;
+
+        device->device_id = value >> 16;
+        device->vender_id = venderId;
+        device->bus = bus;
+        device->slot = slot;
+        device->func = func;
+
+        uint32_t classcode = pci_read_config(bus,slot,func,0x08);
+        classcode = classcode>>24 & 0xff;
+        if (classcode == 0x03){
+           pci_set_bars(device);
+           map_area(device->bar[0].iobase,device->bar[0].iobase,device->bar[0].size);
+           volatile uint32_t* fb = (volatile uint32_t*)device->bar[0].iobase;
+           map_area(device->bar[2].iobase,device->bar[2].iobase,device->bar[2].size);
+           uint32_t  iobase = device->bar[2].iobase + 0x500;
+           *(volatile uint16_t *)(iobase + (0<<1)) = 0xb0c5;
+           *(volatile uint16_t *)(iobase + (1<<1)) = 1024;
+           *(volatile uint16_t *)(iobase + (2<<1)) = 768;
+           *(volatile uint16_t *)(iobase + (3<<1)) = 32;
+           *(volatile uint16_t *)(iobase + (4<<1)) = 0x41;
+           fb[768 * 30 + 1024] = 0x0000ff00;
+           classcode ++;
+          }
+
+      }
+      }
+    }
+  }
+}
+
+
+void pci_write_config(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset, uint32_t data){
+  uint32_t address = pci_addr(bus,slot,func,offset);
+  outl(PCI_ADDR, address);
+  outl(PCI_DATA, data);
+}
+struct pci_device * find_device(uint16_t vender_id,uint16_t device_id){
+  int end = device_arry.next;
+  int i = 0;
+  for (i=0; i<end; i++){
+    struct pci_device * device = &device_arry.devices[i];
+    if (vender_id == device->vender_id && device_id == device->device_id){
+      return device;
+    }
+  }
+  return NULL;
+}
+
+
+void pci_enable_busmastering(struct pci_device * device){
+  uint32_t data = pci_read_config(device->bus,device->slot,device->func,0x4);
+  data |= PCI_COMMAND_MASTER;
+  pci_write_config(device->bus,device->slot,device->func,0x4,data);
 }
 
 

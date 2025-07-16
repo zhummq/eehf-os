@@ -2,6 +2,7 @@
 LOADER_BASE_ADDR equ 0x900 
 LOADER_START_SECTOR equ 0x2
 
+VBE_MODE_INFO equ 0x60000
 LOADER_STACK_TOP equ LOADER_BASE_ADDR               ;这一条之前是在loader.S中定义，现在搬过来了
 
 KERNEL_BIN_BASE_ADDR equ 0x70000                    ;定义内核在内存中的缓冲区，也就是将编译好的内核文件暂时存储在内存中的位置

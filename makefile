@@ -175,7 +175,7 @@ mk_dir:
 
 hd:
 	dd if=build/mbr.o of=$(HD60M_PATH) count=1 bs=512 conv=notrunc && \
-	dd if=build/loader.o of=$(HD60M_PATH) count=4 bs=512 seek=2 conv=notrunc && \
+	dd if=build/loader.o of=$(HD60M_PATH) count=10 bs=512 seek=2 conv=notrunc && \
 	dd if=$(BUILD_DIR)/kernel.bin of=$(HD60M_PATH) bs=512 count=200 seek=9 conv=notrunc
 	
 clean:
@@ -189,13 +189,15 @@ qemu:
 		-drive file=hd80M.img,media=disk,index=1,format=raw\
 		-no-reboot -no-shutdown\
 		-netdev tap,id=net0,ifname=tap0,script=no,downscript=no\
-		-device e1000,netdev=net0,mac=00:FF:26:E4:55:94
+		-device e1000,netdev=net0,mac=00:FF:26:E4:55:94\
+		-vga std
 qemu-gdb:
 	sudo qemu-system-i386 -cpu pentium -drive file=hd3M.img,media=disk,index=0,format=raw\
 		-drive file=hd80M.img,media=disk,index=1,format=raw\
 		-no-reboot -no-shutdown -s -S\
     -netdev tap,id=net0,ifname=tap0,script=no,downscript=no\
-		-device e1000,netdev=net0,mac=00:FF:26:E4:55:94
+		-device e1000,netdev=net0,mac=00:FF:26:E4:55:94\
+		-vga std
 #生成可以被GDB理解的符号表，用于GDB调试
 gdb_symbol:
 	objcopy --only-keep-debug $(BUILD_DIR)/kernel.bin $(BUILD_DIR)/kernel.sym

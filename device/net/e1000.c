@@ -183,8 +183,8 @@ void e1000_init(void){
     printk("66666\n");
     while(1);
   }
-  map_area(MMIOADDR ,bar->iobase,bar->size); 
-  bar->viobase = MMIOADDR;
+  map_area(bar->iobase,bar->iobase,bar->size); 
+  bar->viobase = bar->iobase;
 
   base = e1000.dev->bar[0].viobase;
   pci_enable_busmastering(e1000.dev);

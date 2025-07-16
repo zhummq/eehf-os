@@ -4,11 +4,11 @@ section loader vstart=LOADER_BASE_ADDR
                                                 
 GDT_BASE:                                               ;构建gdt及其内部的描述符
     dd 0x00000000 
-	dd 0x00000000
+	  dd 0x00000000
 
 CODE_DESC:  
     dd 0x0000FFFF 
-	dd DESC_CODE_HIGH4
+	  dd DESC_CODE_HIGH4
 
 DATA_STACK_DESC:  
     dd 0x0000FFFF
@@ -64,6 +64,9 @@ loader_start:
     mov edx, eax		                                ;edx为总内存大小
 .next_ards:
     loop .find_max_mem_area
+    ;call set_vbe_mode
+    ;call get_mode_info
+
 
     mov [total_mem_bytes], edx	                        ;将内存换为byte单位后存入total_mem_bytes处。
 
@@ -105,11 +108,7 @@ p_mode_start:
     mov gs,ax
 
                                                         ; -------------------------   加载kernel  ----------------------
-    mov esi, KERNEL_START_SECTOR        ; kernel.bin所在的扇区号
-    mov edi, KERNEL_BIN_BASE_ADDR       ; 从磁盘读出后，写入到ebx指定的地址
-    mov cl, 200                ; 读入的扇区数
-    call rd_disk_m_32
-                                                        
+                                                            
     call setup_page                                     ;创建页目录表的函数,我们的页目录表必须放在1M开始的位置，所以必须在开启保护模式后运行
 
                                                         ;以下两句是将gdt描述符中视频段描述符中的段基址+0xc0000000
@@ -118,18 +117,25 @@ p_mode_start:
                                            
     add dword [gdt_ptr + 2], 0xc0000000                 ;将gdt的基址加上0xc0000000使其成为内核所在的高地址
 
+   ; mov eax,[VBE_MODE_INFO + 0x28]
+    ;mov dword [gdt_ptr + 2],eax
     add esp, 0xc0000000                                 ; 将栈指针同样映射到内核地址
 
     mov eax, PAGE_DIR_TABLE_POS                         ; 把页目录地址赋给cr3
     mov cr3, eax
                                                         
     mov eax, cr0                                        ; 打开cr0的pg位(第31位)
-    or eax, 0x80000000  
+    or eax, 0x80000000
     mov cr0, eax
                                                       
     lgdt [gdt_ptr]                                      ;在开启分页后,用gdt新的地址重新加载
 
 enter_kernel:    
+    mov esi, KERNEL_START_SECTOR        ; kernel.bin所在的扇区号
+    mov edi, KERNEL_BIN_BASE_ADDR       ; 从磁盘读出后，写入到ebx指定的地址
+    mov cl, 200                ; 读入的扇区数
+    call rd_disk_m_32
+
     call kernel_init
     mov esp, 0xc009f000
     jmp KERNEL_ENTRY_POINT                              ; 用地址0x1500访问测试，结果ok
@@ -298,4 +304,33 @@ rd_disk_m_32:
     dec bl
     cmp bl,0
     jnz .next_sector
+    ret
+get_vbe_info:
+.error:
+    hlt
+    mov ax,0x4f00
+    mov di,0x50000
+    mov dword [es:di],'2EBV'
+    int 0x10
+    cmp ax,0x004f
+    jne .error
+    ret
+set_vbe_mode:
+.error:
+    hlt
+    mov ax,0x4f02
+    mov bx,0x4117
+    int 0x10
+    cmp ax,0x004f
+    jne .error
+    ret
+get_mode_info:
+    .error:
+    hlt
+    mov ax,0x4f01
+    mov cx,0x117
+    mov di,VBE_MODE_INFO
+    int 0x10
+    cmp ax,0x004f
+    jne .error
     ret

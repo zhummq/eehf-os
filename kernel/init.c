@@ -14,6 +14,8 @@
 #include "e1000.h"
 #include "memory.h"
 #include "net.h"
+#include "vga.h"
+#include "psf2.h"
 
 /*负责初始化所有模块 */
 void init_all() {
@@ -23,7 +25,7 @@ void init_all() {
 	mem_init();     // 初始化内存管理系统
  
 	thread_init();    // 初始化线程相关结构
-  
+ 
 	timer_init();     // 初始化PIT
  //pci_init();// pci_init
   //e1000_init();
@@ -32,12 +34,14 @@ void init_all() {
 	tss_init();       // tss初始化
 	syscall_init();   // 初始化系统调用
   pci_init();// pci_init
+  vga_init();
   e1000_init();
   net_init();
 	intr_enable();    // 后面的ide_init需要打开中断
 	ide_init();     // 初始化硬盘
 	filesys_init();   // 初始化文件系统
-  for (int i = 0;i<5;i++)
-  test_dhcp();
+  //for (int i = 0;i<5;i++)
+  //test_dhcp();
 
+  draw_char(10,10,'a',0xffffffff,0x00000000);
 }

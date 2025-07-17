@@ -88,24 +88,7 @@ static void pci_scan(void){
         device->slot = slot;
         device->func = func;
 
-        uint32_t classcode = pci_read_config(bus,slot,func,0x08);
-        classcode = classcode>>24 & 0xff;
-        if (classcode == 0x03){
-           pci_set_bars(device);
-           map_area(device->bar[0].iobase,device->bar[0].iobase,device->bar[0].size);
-           volatile uint32_t* fb = (volatile uint32_t*)device->bar[0].iobase;
-           map_area(device->bar[2].iobase,device->bar[2].iobase,device->bar[2].size);
-           uint32_t  iobase = device->bar[2].iobase + 0x500;
-           *(volatile uint16_t *)(iobase + (0<<1)) = 0xb0c5;
-           *(volatile uint16_t *)(iobase + (1<<1)) = 1024;
-           *(volatile uint16_t *)(iobase + (2<<1)) = 768;
-           *(volatile uint16_t *)(iobase + (3<<1)) = 32;
-           *(volatile uint16_t *)(iobase + (4<<1)) = 0x41;
-           fb[768 * 30 + 1024] = 0x0000ff00;
-           classcode ++;
-          }
-
-      }
+      }      
       }
     }
   }

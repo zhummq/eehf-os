@@ -6,7 +6,7 @@ HD60M_PATH=./hd3M.img
 AS=nasm
 CC=gcc
 LD=ld
-LIB= -I net/ -I device/net -I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/ -I thread/ -I userprog/	-I fs/ -I shell/
+LIB= -I tool/ -I device/vga/ -I net/ -I device/net -I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/ -I thread/ -I userprog/	-I fs/ -I shell/
 ASFLAGS= -f elf -g
 CFLAGS= -Wall $(LIB) -c -fno-builtin -W -Wstrict-prototypes -Wmissing-prototypes -m32 -fno-stack-protector -g
 #-Wall warning all的意思，产生尽可能多警告信息，-fno-builtin不要采用内部函数，
@@ -27,7 +27,8 @@ OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/init.o \
 	$(BUILD_DIR)/file.o $(BUILD_DIR)/dir.o $(BUILD_DIR)/fork.o	$(BUILD_DIR)/shell.o $(BUILD_DIR)/buildin_cmd.o \
 	$(BUILD_DIR)/exec.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/wait_exit.o $(BUILD_DIR)/pipe.o\
 $(BUILD_DIR)/pci.o $(BUILD_DIR)/e1000.o $(BUILD_DIR)/net.o $(BUILD_DIR)/eth.o $(BUILD_DIR)/arp.o\
-$(BUILD_DIR)/dhcp.o $(BUILD_DIR)/ipv4.o $(BUILD_DIR)/socket.o $(BUILD_DIR)/udp.o $(BUILD_DIR)/icmp.o
+$(BUILD_DIR)/dhcp.o $(BUILD_DIR)/ipv4.o $(BUILD_DIR)/socket.o $(BUILD_DIR)/udp.o $(BUILD_DIR)/icmp.o\
+$(BUILD_DIR)/font.o $(BUILD_DIR)/vga.o $(BUILD_DIR)/psf2.o
 #顺序最好是调用在前，实现在后
 
 ######################编译两个启动文件的代码#####################################
@@ -154,6 +155,13 @@ $(BUILD_DIR)/udp.o:net/udp.c
 	$(CC) $(CFLAGS) -o $@ $<
 $(BUILD_DIR)/icmp.o:net/icmp.c
 	$(CC) $(CFLAGS) -o $@ $<
+$(BUILD_DIR)/font.o:tool/font.c
+	$(CC) $(CFLAGS) -o $@ $<
+$(BUILD_DIR)/vga.o:device/vga/vga.c
+	$(CC) $(CFLAGS) -o $@ $<
+$(BUILD_DIR)/psf2.o:tool/psf2.c
+	$(CC) $(CFLAGS) -o $@ $<
+
 ###################编译汇编内核代码#####################################################
 $(BUILD_DIR)/kernel.o:kernel/kernel.S 
 	$(AS) $(ASFLAGS) -o $@ $<
@@ -163,6 +171,7 @@ $(BUILD_DIR)/print.o:lib/kernel/print.S
 
 $(BUILD_DIR)/switch.o:thread/switch.S
 	$(AS) $(ASFLAGS) -o $@ $<
+
 ##################链接所有内核目标文件##################################################
 $(BUILD_DIR)/kernel.bin:$(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^

@@ -185,7 +185,7 @@ mk_dir:
 hd:
 	dd if=build/mbr.o of=$(HD60M_PATH) count=1 bs=512 conv=notrunc && \
 	dd if=build/loader.o of=$(HD60M_PATH) count=10 bs=512 seek=2 conv=notrunc && \
-	dd if=$(BUILD_DIR)/kernel.bin of=$(HD60M_PATH) bs=512 count=200 seek=9 conv=notrunc
+	dd if=$(BUILD_DIR)/kernel.bin of=$(HD60M_PATH) bs=512 count=400 seek=9 conv=notrunc
 	
 clean:
 	@cd $(BUILD_DIR) && rm -f ./* && echo "remove ./build all done"

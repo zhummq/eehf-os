@@ -41,6 +41,9 @@
 #define CMD_IDENTIFY	   0xec	    // identify指令
 #define CMD_READ_SECTOR	   0x20     // 读扇区指令
 #define CMD_WRITE_SECTOR   0x30	    // 写扇区指令
+#define CMD_SET_MULTIPLE_MODE 0xc6
+#define CMD_READ_MULTIPLE 0xc4
+#define CMD_WRITE_MULTIPLE 0xc5
 
 /* 定义可读写的最大扇区数,调试用的 */
 #define max_lba ((80*1024*1024/512) - 1)	// 只支持80MB硬盘
@@ -55,6 +58,7 @@ static void select_disk(struct disk* hd) {
         reg_device |= BIT_DEV_DEV;
     }
     outb(reg_dev(hd->my_channel), reg_device);
+
 }
 
 /* 向硬盘控制器写入起始扇区地址及要读写的扇区数 */
@@ -64,6 +68,7 @@ static void select_sector(struct disk* hd, uint32_t lba, uint8_t sec_cnt) {
 
    /* 写入要读写的扇区数*/
    outb(reg_sect_cnt(channel), sec_cnt);	 // 如果sec_cnt为0,则表示写入256个扇区
+   //outb(reg_cmd(channel), CMD_SET_MULTIPLE_MODE);
 
    /* 写入lba地址(即扇区号) */
    outb(reg_lba_l(channel), lba);		 // lba地址的低8位,不用单独取出低8位.outb函数中的汇编指令outb %b0, %w1会只用al。
@@ -123,7 +128,7 @@ static bool busy_wait(struct disk* hd) {
 }
 
 /* 从硬盘读取sec_cnt个扇区到buf */
-void ide_read(struct disk* hd, uint32_t lba, void* buf, uint32_t sec_cnt) { 
+static void ide_read_one(struct disk* hd, uint32_t lba, void* buf, uint32_t sec_cnt) { 
     ASSERT(lba <= max_lba);
     ASSERT(sec_cnt > 0);
     lock_acquire (&hd->my_channel->lock);
@@ -146,6 +151,7 @@ void ide_read(struct disk* hd, uint32_t lba, void* buf, uint32_t sec_cnt) {
 
     /* 3 执行的命令写入reg_cmd寄存器 */
         cmd_out(hd->my_channel, CMD_READ_SECTOR);	  // 准备开始读数据
+        //cmd_out(hd->my_channel,CMD_READ_MULTIPLE);
 
     /*********************   阻塞自己的时机  ***********************
          在硬盘已经开始工作(开始在内部读数据或写数据)后才能阻塞自己,现在硬盘已经开始忙了,
@@ -167,9 +173,13 @@ void ide_read(struct disk* hd, uint32_t lba, void* buf, uint32_t sec_cnt) {
     }
     lock_release(&hd->my_channel->lock);
 }
-
+void ide_read(struct disk* hd, uint32_t lba, void* buf, uint32_t sec_cnt){
+  for (uint32_t i = 0; i<sec_cnt; i++){
+      ide_read_one(hd, lba, buf, 1);
+  }
+} 
 /* 将buf中sec_cnt扇区数据写入硬盘 */
-void ide_write(struct disk* hd, uint32_t lba, void* buf, uint32_t sec_cnt) {
+static void ide_write_one(struct disk* hd, uint32_t lba, void* buf, uint32_t sec_cnt) {
     ASSERT(lba <= max_lba);
     ASSERT(sec_cnt > 0);
     lock_acquire (&hd->my_channel->lock);
@@ -192,6 +202,8 @@ void ide_write(struct disk* hd, uint32_t lba, void* buf, uint32_t sec_cnt) {
 
     /* 3 执行的命令写入reg_cmd寄存器 */
         cmd_out(hd->my_channel, CMD_WRITE_SECTOR);	      // 准备开始写数据
+    //    cmd_out(hd->my_channel, CMD_WRITE_MULTIPLE);
+
 
     /* 4 检测硬盘状态是否可读 */
         if (!busy_wait(hd)) {			      // 若失败
@@ -210,6 +222,11 @@ void ide_write(struct disk* hd, uint32_t lba, void* buf, uint32_t sec_cnt) {
     /* 醒来后开始释放锁*/
     lock_release(&hd->my_channel->lock);
 }
+void ide_write(struct disk* hd, uint32_t lba, void* buf, uint32_t sec_cnt){
+  for (uint32_t i = 0; i<sec_cnt; i++){
+      ide_write_one(hd, lba, buf, 1);
+  }
+} 
 
 /* 硬盘中断处理程序 */
 void intr_hd_handler(uint8_t irq_no) {

@@ -25,5 +25,4 @@ void draw_char(int x,int y,uint8_t c,uint32_t fg,uint32_t bg){
     offset += width_byte;
     x_piexl ++;
   }
-
 }

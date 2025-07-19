@@ -27,9 +27,7 @@ void init_all() {
 	thread_init();    // 初始化线程相关结构
  
 	timer_init();     // 初始化PIT
- //pci_init();// pci_init
-  //e1000_init();
-	console_init();   // 控制台初始化最好放在开中断之前
+  console_init();   // 控制台初始化最好放在开中断之前
 	keyboard_init();  // 键盘初始化
 	tss_init();       // tss初始化
 	syscall_init();   // 初始化系统调用
@@ -40,8 +38,4 @@ void init_all() {
 	intr_enable();    // 后面的ide_init需要打开中断
 	ide_init();     // 初始化硬盘
 	filesys_init();   // 初始化文件系统
-  //for (int i = 0;i<5;i++)
-  //test_dhcp();
-
-  draw_char(10,10,'a',0xffffffff,0x00000000);
-}
+  }

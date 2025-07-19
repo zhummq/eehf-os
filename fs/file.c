@@ -18,8 +18,9 @@ int32_t get_free_slot_in_global(void)
         {
             file_table[fd_idx].used = 1;
             break;
-        }
+        } else {
         fd_idx++;
+        }
     }
     if (fd_idx == MAX_FILE_OPEN)
     {

@@ -107,18 +107,19 @@ p_mode_start:
     mov ax,SELECTOR_VIDEO
     mov gs,ax
 
-                                                        ; -------------------------   加载kernel  ----------------------
+    mov esi, KERNEL_START_SECTOR        ; kernel.bin所在的扇区号
+    mov edi, KERNEL_BIN_BASE_ADDR       ; 从磁盘读出后，写入到ebx指定的地址
+    mov cl, 200                ; 读入的扇区数
+    call rd_disk_m_32
+                                                     ; -------------------------   加载kernel  ----------------------
                                                             
     call setup_page                                     ;创建页目录表的函数,我们的页目录表必须放在1M开始的位置，所以必须在开启保护模式后运行
 
                                                         ;以下两句是将gdt描述符中视频段描述符中的段基址+0xc0000000
     mov ebx, [gdt_ptr + 2]                              ;ebx中存着GDT_BASE
     or dword [ebx + 0x18 + 4], 0xc0000000               ;视频段是第3个段描述符,每个描述符是8字节,故0x18 = 24，然后+4，是取出了视频段段描述符的高4字节。然后or操作，段基址最高位+c
-                                           
     add dword [gdt_ptr + 2], 0xc0000000                 ;将gdt的基址加上0xc0000000使其成为内核所在的高地址
 
-   ; mov eax,[VBE_MODE_INFO + 0x28]
-    ;mov dword [gdt_ptr + 2],eax
     add esp, 0xc0000000                                 ; 将栈指针同样映射到内核地址
 
     mov eax, PAGE_DIR_TABLE_POS                         ; 把页目录地址赋给cr3
@@ -131,11 +132,6 @@ p_mode_start:
     lgdt [gdt_ptr]                                      ;在开启分页后,用gdt新的地址重新加载
 
 enter_kernel:    
-    mov esi, KERNEL_START_SECTOR        ; kernel.bin所在的扇区号
-    mov edi, KERNEL_BIN_BASE_ADDR       ; 从磁盘读出后，写入到ebx指定的地址
-    mov cl, 200                ; 读入的扇区数
-    call rd_disk_m_32
-
     call kernel_init
     mov esp, 0xc009f000
     jmp KERNEL_ENTRY_POINT                              ; 用地址0x1500访问测试，结果ok
@@ -304,33 +300,4 @@ rd_disk_m_32:
     dec bl
     cmp bl,0
     jnz .next_sector
-    ret
-get_vbe_info:
-.error:
-    hlt
-    mov ax,0x4f00
-    mov di,0x50000
-    mov dword [es:di],'2EBV'
-    int 0x10
-    cmp ax,0x004f
-    jne .error
-    ret
-set_vbe_mode:
-.error:
-    hlt
-    mov ax,0x4f02
-    mov bx,0x4117
-    int 0x10
-    cmp ax,0x004f
-    jne .error
-    ret
-get_mode_info:
-    .error:
-    hlt
-    mov ax,0x4f01
-    mov cx,0x117
-    mov di,VBE_MODE_INFO
-    int 0x10
-    cmp ax,0x004f
-    jne .error
     ret

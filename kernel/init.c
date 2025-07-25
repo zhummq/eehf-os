@@ -32,7 +32,7 @@ void init_all() {
 	tss_init();       // tss初始化
 	syscall_init();   // 初始化系统调用
   pci_init();// pci_init
-  vga_init();
+ // vga_init();
   e1000_init();
   net_init();
 	intr_enable();    // 后面的ide_init需要打开中断

@@ -101,7 +101,7 @@ char *getcwd(char *buf, uint32_t size)
 }
 
 /* 以flag方式打开文件pathname */
-int32_t open(char *pathname, uint8_t flag)
+int32_t open(const char *pathname, uint8_t flag)
 {
     return _syscall2(SYS_OPEN, pathname, flag);
 }
@@ -211,4 +211,19 @@ void fd_redirect(uint32_t old_local_fd, uint32_t new_local_fd)
 void help(void)
 {
     _syscall0(SYS_HELP);
+}
+char get_keycode(void){
+  return _syscall0(SYS_GET_KEYCODE);
+}
+void draw_piexl(uint32_t x,uint32_t y,uint32_t color){
+  _syscall3(SYS_DRAW_PIEXL,x,y,color);
+}
+void msleep(uint32_t ms){
+  _syscall1(SYS_MSLEEP,ms);
+}
+uint32_t get_ms(void){
+  return _syscall0(SYS_GET_MS);
+}
+void* realloc(void *ptr, uint32_t size){
+  return (void *)_syscall2(SYS_REALLOC,ptr,size);
 }

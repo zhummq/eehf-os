@@ -28,7 +28,7 @@ OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/init.o \
 	$(BUILD_DIR)/exec.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/wait_exit.o $(BUILD_DIR)/pipe.o\
 $(BUILD_DIR)/pci.o $(BUILD_DIR)/e1000.o $(BUILD_DIR)/net.o $(BUILD_DIR)/eth.o $(BUILD_DIR)/arp.o\
 $(BUILD_DIR)/dhcp.o $(BUILD_DIR)/ipv4.o $(BUILD_DIR)/socket.o $(BUILD_DIR)/udp.o $(BUILD_DIR)/icmp.o\
-$(BUILD_DIR)/font.o $(BUILD_DIR)/vga.o $(BUILD_DIR)/psf2.o
+$(BUILD_DIR)/font.o $(BUILD_DIR)/vga.o $(BUILD_DIR)/psf2.o $(BUILD_DIR)/math.o
 #顺序最好是调用在前，实现在后
 
 ######################编译两个启动文件的代码#####################################
@@ -161,7 +161,8 @@ $(BUILD_DIR)/vga.o:device/vga/vga.c
 	$(CC) $(CFLAGS) -o $@ $<
 $(BUILD_DIR)/psf2.o:tool/psf2.c
 	$(CC) $(CFLAGS) -o $@ $<
-
+$(BUILD_DIR)/math.o:math/math.c
+	$(CC) $(CFLAGS) -o $@ $<
 ###################编译汇编内核代码#####################################################
 $(BUILD_DIR)/kernel.o:kernel/kernel.S 
 	$(AS) $(ASFLAGS) -o $@ $<
@@ -185,7 +186,7 @@ mk_dir:
 hd:
 	dd if=build/mbr.o of=$(HD60M_PATH) count=1 bs=512 conv=notrunc && \
 	dd if=build/loader.o of=$(HD60M_PATH) count=10 bs=512 seek=2 conv=notrunc && \
-	dd if=$(BUILD_DIR)/kernel.bin of=$(HD60M_PATH) bs=512 count=400 seek=9 conv=notrunc
+	dd if=$(BUILD_DIR)/kernel.bin of=$(HD60M_PATH) bs=512 count=700 seek=9 conv=notrunc
 	
 clean:
 	@cd $(BUILD_DIR) && rm -f ./* && echo "remove ./build all done"

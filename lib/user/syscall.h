@@ -33,7 +33,12 @@ enum SYSCALL_NR
     SYS_WAIT,
     SYS_PIPE,
     SYS_FD_REDIRECT,
-    SYS_HELP
+    SYS_HELP,
+    SYS_GET_KEYCODE,
+    SYS_DRAW_PIEXL,
+    SYS_MSLEEP,
+    SYS_GET_MS,
+    SYS_REALLOC
 };
 uint32_t getpid(void);
 uint32_t write(int32_t fd, const void *buf, uint32_t count);
@@ -44,7 +49,7 @@ int32_t read(int32_t fd, void *buf, uint32_t count);
 void putchar(char char_asci);
 void clear(void);
 char *getcwd(char *buf, uint32_t size);
-int32_t open(char *pathname, uint8_t flag);
+int32_t open(const char *pathname, uint8_t flag);
 int32_t close(int32_t fd);
 int32_t lseek(int32_t fd, int32_t offset, uint8_t whence);
 int32_t unlink(const char *pathname);
@@ -63,4 +68,9 @@ pid_t wait(int32_t *status);
 int32_t pipe(int32_t pipefd[2]);
 void fd_redirect(uint32_t old_local_fd, uint32_t new_local_fd);
 void help(void);
+char get_keycode(void);
+void draw_piexl(uint32_t x,uint32_t y,uint32_t color);
+void msleep(uint32_t ms);
+uint32_t get_ms(void);
+void *realloc(void* ptr, uint32_t size);
 #endif

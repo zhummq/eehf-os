@@ -78,6 +78,6 @@ void mtime_sleep(uint32_t m_seconds) {
    ticks_to_sleep(sleep_ticks); 
 }
 
-uint32_t get_ms(void){
+uint32_t get_ms_timer(void){
   return ticks * mil_seconds_per_intr;
 }

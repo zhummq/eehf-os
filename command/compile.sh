@@ -1,14 +1,14 @@
 ####  此脚本应该在command目录下执行
 
-if [[ ! -d "../lib" || ! -d "../build" ]];then
-   echo "dependent dir don\`t exist!"
-   cwd=$(pwd)
-   cwd=${cwd##*/}
-   cwd=${cwd%/}
-   if [[ $cwd != "command" ]];then
-      echo -e "you\`d better in command dir\n"
-   fi 
-   exit
+if [[ ! -d "../lib" || ! -d "../build" ]]; then
+  echo "dependent dir don\`t exist!"
+  cwd=$(pwd)
+  cwd=${cwd##*/}
+  cwd=${cwd%/}
+  if [[ $cwd != "command" ]]; then
+    echo -e "you\`d better in command dir\n"
+  fi
+  exit
 fi
 CC="gcc-4.9"
 BIN="cat"
@@ -26,9 +26,9 @@ nasm -f elf ./start.S -o ./start.o
 ar rcs simple_crt.a $OBJS start.o
 $CC $CFLAGS $LIBS -o $BIN".o" $BIN".c"
 ld $BIN".o" simple_crt.a -o $BIN -m elf_i386
-SEC_CNT=$(ls -l $BIN|awk '{printf("%d", ($5+511)/512)}')
+SEC_CNT=$(ls -l $BIN | awk '{printf("%d", ($5+511)/512)}')
 
-if [[ -f $BIN ]];then
-   dd if=./$DD_IN of=$DD_OUT bs=512 \
-   count=$SEC_CNT seek=300 conv=notrunc
+if [[ -f $BIN ]]; then
+  dd if=./$DD_IN of=$DD_OUT bs=512 \
+    count=$SEC_CNT seek=800 conv=notrunc
 fi

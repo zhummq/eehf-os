@@ -92,7 +92,7 @@ char keymap[][2] = {
 /* 0x34 */	{'.',	'>'},		
 /* 0x35 */	{'/',	'?'},
 /* 0x36	*/	{shift_r_char, shift_r_char},	
-/* 0x37 */	{'*',	'*'},    	
+/* 0x37 */	{'*',	'*'},
 /* 0x38 */	{alt_l_char, alt_l_char},
 /* 0x39 */	{' ',	' '},		
 /* 0x3A */	{caps_lock_char, caps_lock_char}
@@ -105,6 +105,7 @@ int caps_lock_status = 0;   //用于记录是否按下大写锁定
 int ext_scancode = 0;       //用于记录是否是扩展码
 
 struct ioqueue kbd_buf;	   // 定义键盘缓冲区
+struct ioqueue kbd_keycode_buf;
 
 static void intr_keyboard_handler(void)
 {
@@ -122,6 +123,9 @@ static void intr_keyboard_handler(void)
     }
 
     break_code =( (scancode & 0x0080) != 0);  //断码=通码+0x80，如果是断码，那么&出来结果！=0，那么break_code值为1
+    if (!ioq_full(&kbd_keycode_buf)) {
+                ioq_putchar(&kbd_keycode_buf,(char)scancode);
+     }
     if(break_code)  //如果是断码，就要判断是否是控制按键的断码，如果是，就要将表示他们按下的标志清零，如果不是，就不处理。最后都要退出程序
     {
     	uint16_t make_code = (scancode &= 0xff7f); //将扫描码(现在是断码)还原成通码
@@ -206,7 +210,14 @@ static void intr_keyboard_handler(void)
 void keyboard_init() {
    put_str("keyboard init start\n");
    ioqueue_init(&kbd_buf);
+   ioqueue_init(&kbd_keycode_buf);
    register_handler(0x21, intr_keyboard_handler);
    put_str("keyboard init done\n");
 }
 
+char sys_get_keycode(void){
+ if (ioq_empty(&kbd_keycode_buf)){
+    return 0x00;
+  }
+ return ioq_getchar(&kbd_keycode_buf);
+}

@@ -3,7 +3,11 @@
 #include "stdint.h"
 #include "list.h"
 #include "ide.h"
-
+struct index {
+  uint32_t direct;
+  uint32_t sing;
+  uint32_t dou;
+};
 /* inode结构 */
 struct inode {
     uint32_t i_no;    // inode编号
@@ -16,9 +20,10 @@ struct inode {
     bool write_deny;	   // 写文件不能并行,进程写文件前检查此标识
 
     /* i_sectors[0-11]是直接块, i_sectors[12]用来存储一级间接块指针 */
-    uint32_t i_sectors[13];
+    uint32_t i_sectors[14];
     struct list_elem inode_tag;
 };
+
 
 void inode_sync(struct partition* part, struct inode* inode, void* io_buf);
 struct inode *inode_open(struct partition *part, uint32_t inode_no);

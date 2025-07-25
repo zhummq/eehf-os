@@ -11,8 +11,11 @@
 #include "exec.h"
 #include "wait_exit.h"
 #include "pipe.h"
+#include "keyboard.h"
+#include "vga.h"
+#include "timer.h"
 
-#define syscall_nr 32
+#define syscall_nr 37
 typedef void *syscall;
 syscall syscall_table[syscall_nr];
 
@@ -54,5 +57,10 @@ void syscall_init(void)
     syscall_table[SYS_PIPE] = sys_pipe;
     syscall_table[SYS_FD_REDIRECT] = sys_fd_redirect;
     syscall_table[SYS_HELP] = sys_help;
+    syscall_table[SYS_GET_KEYCODE] = sys_get_keycode;
+    syscall_table[SYS_DRAW_PIEXL] = put_piexl;
+    syscall_table[SYS_MSLEEP] = mtime_sleep;
+    syscall_table[SYS_GET_MS] =get_ms_timer;
+    syscall_table[SYS_REALLOC] = sys_realloc;
     put_str("syscall_init done\n");
 }

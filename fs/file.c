@@ -5,9 +5,30 @@
 #include "string.h"
 #include "interrupt.h"
 
+FILE * stderr;
 /* 文件表 */
 struct file file_table[MAX_FILE_OPEN];
 
+struct index get_index(uint32_t size){
+  uint32_t count = DIV_ROUND_UP(size,BLOCK_SIZE);
+  struct index index;
+  index.direct = 0;
+  index.sing =0;
+  index.dou = 0;
+  if (count <= 12){
+    index.direct = count;
+    return index;
+  } else if (count <= 12 + 128){
+    index.sing = count - 12;
+    return index;
+  } else{
+    index.dou = 1;
+    count -= 140;
+    index.sing = count / 128;
+    index.direct = count % 128;
+    return index;
+  }
+}
 /* 从文件表file_table中获取一个空闲位,成功返回下标,失败返回-1 */
 int32_t get_free_slot_in_global(void)
 {
@@ -246,11 +267,224 @@ int32_t file_close(struct file *file)
     file->used = 0;
     return 0;
 }
+static uint32_t get_lba(void)
+{
+  int32_t block_lba = block_bitmap_alloc(cur_part);
+  if (block_lba == -1)
+  {
+    while(1);
+  }
+  int32_t block_bitmap_idx = block_lba - cur_part->sb->data_start_lba;
+  ASSERT(block_bitmap_idx != 0);
+  bitmap_sync(cur_part, block_bitmap_idx, BLOCK_BITMAP);
+  return (uint32_t)block_lba;
+}
+static void buf_write(uint32_t* i_sectors,uint32_t used_size,uint32_t new_size,uint32_t used_index,uint32_t new_index,uint8_t*buf,uint8_t*io_buf)
+{
+      uint32_t block_offset = used_size % BLOCK_SIZE;
+  uint32_t bytes_written = 0;
+      if (block_offset)
+      {
+        if (used_index == new_index)
+        {
+          uint32_t lba = i_sectors[used_index -1];
+          ide_read(cur_part->my_disk,lba,io_buf,1);
+          memcpy(io_buf+block_offset,buf,new_size - used_size);
+          ide_write(cur_part->my_disk,lba,io_buf,1);
+      return;
+        } else 
+        {
+          bytes_written = BLOCK_SIZE - block_offset;
+          uint32_t lba = i_sectors[used_index -1];
+          ide_read(cur_part->my_disk,lba,io_buf,1);
+          memcpy(io_buf+block_offset,buf,bytes_written);
+          ide_write(cur_part->my_disk,lba,io_buf,1);
+        }
+      }
+      for (uint32_t i = used_index ;i<new_index -1;i++)
+      {
+
+        uint32_t lba = get_lba();
+        i_sectors[i] = lba;
+        ide_write(cur_part->my_disk,lba,buf + bytes_written,1);
+        bytes_written += BLOCK_SIZE;
+      }
+      uint32_t end_offset = new_size % BLOCK_SIZE;
+      uint32_t lba = get_lba();
+      i_sectors[new_index -1] = lba;
+      end_offset = end_offset ? end_offset : BLOCK_SIZE;
+      memcpy(io_buf,buf+bytes_written,end_offset);
+      ide_write(cur_part->my_disk,lba,io_buf,1);
+}
+int32_t file_write(struct file *file, const void *buf, uint32_t count){
+  if ((file->fd_inode->i_size + count) > (BLOCK_SIZE * (12 + 128 + 128 * 128)))
+  { // 文件目前最大只支持512*140=71680字节
+     printk("exceed max file_size 71680 bytes, write file failed\n");
+     return -1;
+  }
+  uint8_t* io_buf = sys_malloc(BLOCK_SIZE);
+  uint32_t* lba_buf = sys_malloc(BLOCK_SIZE);
+  uint32_t* double_buf = sys_malloc(BLOCK_SIZE);
+  if (io_buf == NULL)
+  {
+      printk("file_write: sys_malloc for io_buf failed\n");
+      return -1;
+  }
+  uint8_t * buf_dst = (uint8_t*)buf;
+  uint32_t used_size = file->fd_inode->i_size;
+  uint32_t new_size = file->fd_inode->i_size + count;
+  struct index used_index = get_index(used_size);
+  struct index new_index = get_index(new_size);
+  file->fd_pos = file->fd_inode->i_size - 1;
+  if ((used_index.dou == 0&& used_index.direct != 0)|| used_size == 0)
+  {
+    if (new_index.dou == 0&& new_index.direct != 0)
+    {
+      buf_write(file->fd_inode->i_sectors,used_size,new_size,used_index.direct,new_index.direct,buf_dst,io_buf);
+    } else if (new_index.dou == 0&& new_index.sing != 0)
+    {
+      uint32_t bytes_written = 0;
+      buf_write(file->fd_inode->i_sectors,used_size,12*BLOCK_SIZE,used_index.direct,12,buf_dst,io_buf);
+      bytes_written += 12*BLOCK_SIZE - used_size;
+      uint32_t sing_lba = get_lba();
+      file->fd_inode->i_sectors[12] = sing_lba;
+      memset(lba_buf,0,BLOCK_SIZE);
+      buf_write(lba_buf,12*BLOCK_SIZE,new_size,0,new_index.sing,buf_dst+bytes_written,io_buf);
+      ide_write(cur_part->my_disk,sing_lba,lba_buf,1);
+    } else 
+    {
+      uint32_t bytes_written = 0;
+      buf_write(file->fd_inode->i_sectors,used_size,12*BLOCK_SIZE,used_index.direct,12,buf_dst,io_buf);
+      bytes_written += 12*BLOCK_SIZE - used_size;
+      uint32_t sing_lba = get_lba();
+      file->fd_inode->i_sectors[12] = sing_lba;
+      memset(lba_buf,0,BLOCK_SIZE);
+      buf_write(lba_buf,12*BLOCK_SIZE,140*BLOCK_SIZE,0,128,buf_dst+bytes_written,io_buf);
+      ide_write(cur_part->my_disk,sing_lba,lba_buf,1);
+      bytes_written += 128*BLOCK_SIZE;
+      uint32_t double_lba= get_lba();
+      file->fd_inode->i_sectors[13] = double_lba;
+      memset(lba_buf,0,BLOCK_SIZE);
+      for (int32_t i = 0;i<(int32_t)new_index.sing;i++)
+      {
+
+        uint32_t lba = get_lba();
+        lba_buf[i] = lba;
+        memset(double_buf,0,BLOCK_SIZE);
+        buf_write(double_buf,0,0,0,128,buf_dst+bytes_written,io_buf);
+        ide_write(cur_part->my_disk,lba,double_buf,1);
+        bytes_written += 128*BLOCK_SIZE;
+      }
+      if (new_index.direct != 0)
+      {
+        uint32_t lba = get_lba();
+        lba_buf[new_index.sing] = lba;
+        memset(double_buf,0,BLOCK_SIZE);
+        buf_write(double_buf,0,new_size,0,new_index.direct,buf_dst+bytes_written,io_buf);
+        ide_write(cur_part->my_disk,lba,double_buf,1);
+      }
+      ide_write(cur_part->my_disk,double_lba,lba_buf,1);
+
+    }
+  } else if (used_index.dou == 0&& used_index.sing != 0)
+  {
+    if (new_index.dou == 0&& new_index.sing != 0)
+    {
+      uint32_t sing_lba = file->fd_inode->i_sectors[12];
+      memset(lba_buf,0,BLOCK_SIZE);
+      ide_read(cur_part->my_disk,sing_lba,lba_buf,1);
+      buf_write(lba_buf,used_size,new_size,used_index.sing,new_index.sing,buf_dst,io_buf);
+    } else 
+    {
+      uint32_t bytes_written = 0;
+      uint32_t sing_lba = file->fd_inode->i_sectors[12];
+      memset(lba_buf,0,BLOCK_SIZE);
+      ide_read(cur_part->my_disk,sing_lba,lba_buf,1);
+      buf_write(lba_buf,used_size,140*BLOCK_SIZE,used_index.sing,128,buf_dst,io_buf);
+      ide_write(cur_part->my_disk,sing_lba,lba_buf,1);
+      bytes_written += 140*BLOCK_SIZE - used_size;
+      uint32_t double_lba= get_lba();
+      file->fd_inode->i_sectors[13] = double_lba;
+      memset(lba_buf,0,BLOCK_SIZE);
+      for (int32_t i = 0;i<(int32_t)new_index.sing;i++)
+      {
+
+        uint32_t lba = get_lba();
+        lba_buf[i] = lba;
+        memset(double_buf,0,BLOCK_SIZE);
+        buf_write(double_buf,0,0,0,128,buf_dst+bytes_written,io_buf);
+        ide_write(cur_part->my_disk,lba,double_buf,1);
+        bytes_written += 128*BLOCK_SIZE;
+      }
+      if (new_index.direct != 0)
+      {
+        uint32_t lba = get_lba();
+        lba_buf[new_index.sing] = lba;
+        memset(double_buf,0,BLOCK_SIZE);
+        buf_write(double_buf,0,new_size,0,new_index.direct,buf_dst+bytes_written,io_buf);
+        ide_write(cur_part->my_disk,lba,double_buf,1);
+ 
+      }
+      ide_write(cur_part->my_disk,double_lba,lba_buf,1);
+
+    }
+  } else 
+  {
+    uint32_t double_lba = file->fd_inode->i_sectors[13];
+    memset(lba_buf,0,BLOCK_SIZE);
+    ide_read(cur_part->my_disk,double_lba,lba_buf,1);
+    if (used_index.sing == new_index.sing)
+    {
+      uint32_t lba = lba_buf[used_index.sing];
+      memset(double_buf,0,BLOCK_SIZE);
+      ide_read(cur_part->my_disk,lba,double_buf,1);
+      buf_write(double_buf,used_size,new_size,used_index.direct,new_index.direct,buf_dst,io_buf);
+      ide_write(cur_part->my_disk,lba,double_buf,1);
+    } else 
+    {
+      uint32_t bytes_written = 0;
+      if (used_index.direct != 0)
+      {
+        uint32_t lba  = lba_buf[used_index.sing];
+        memset(double_buf,0,BLOCK_SIZE);
+        ide_read(cur_part->my_disk,lba,double_buf,1);
+        buf_write(double_buf,used_size,0,used_index.direct,128,buf_dst,io_buf);
+        ide_write(cur_part->my_disk,lba,double_buf,1);
+        bytes_written += (used_index.sing + 1)*128*BLOCK_SIZE + 140*BLOCK_SIZE - used_size;
+      }
+      for (uint32_t i = used_index.sing+1;i<new_index.sing;i++)
+      {
+        uint32_t lba = get_lba();
+        lba_buf[i] = lba;
+        memset(double_buf,0,BLOCK_SIZE);
+        buf_write(double_buf,0,0,0,128,buf_dst+bytes_written,io_buf);
+        ide_write(cur_part->my_disk,lba,double_buf,1);
+        bytes_written += 128*BLOCK_SIZE;
+      }
+      if (new_index.direct != 0)
+      {
+        uint32_t lba = get_lba();
+        lba_buf[new_index.sing]= lba;
+        memset(double_buf,0,BLOCK_SIZE);
+        buf_write(double_buf,0,new_size,0,new_index.direct,buf_dst+bytes_written,io_buf);
+        ide_write(cur_part->my_disk,lba,double_buf,1);
+      }
+      ide_write(cur_part->my_disk,double_lba,lba_buf,1);
+    }
+  }
+
+  file->fd_inode->i_size += count;
+  inode_sync(cur_part, file->fd_inode, io_buf);
+  sys_free(double_buf);
+  sys_free(lba_buf);
+  return count;
+}
 
 /* 把buf中的count个字节写入file,成功则返回写入的字节数,失败则返回-1 */
+/*
 int32_t file_write(struct file *file, const void *buf, uint32_t count)
 {
-    if ((file->fd_inode->i_size + count) > (BLOCK_SIZE * 140))
+    if ((file->fd_inode->i_size + count) > (BLOCK_SIZE * (12 + 128 + 128 * 128)))
     { // 文件目前最大只支持512*140=71680字节
         printk("exceed max file_size 71680 bytes, write file failed\n");
         return -1;
@@ -281,7 +515,6 @@ int32_t file_write(struct file *file, const void *buf, uint32_t count)
     int32_t indirect_block_table;  // 用来获取一级间接表地址
     uint32_t block_idx;            // 块索引
 
-    /* 判断文件是否是第一次写,如果是,先为其分配一个块 */
     if (file->fd_inode->i_sectors[0] == 0)
     {
         block_lba = block_bitmap_alloc(cur_part);
@@ -292,29 +525,22 @@ int32_t file_write(struct file *file, const void *buf, uint32_t count)
         }
         file->fd_inode->i_sectors[0] = block_lba;
 
-        /* 每分配一个块就将位图同步到硬盘 */
         block_bitmap_idx = block_lba - cur_part->sb->data_start_lba;
         ASSERT(block_bitmap_idx != 0);
         bitmap_sync(cur_part, block_bitmap_idx, BLOCK_BITMAP);
     }
 
-    /* 写入count个字节前,该文件已经占用的块数 */
     uint32_t file_has_used_blocks = file->fd_inode->i_size / BLOCK_SIZE + 1;
     // 其实这两行应该用DIV_ROUND_UP进行计算，但是改了之后，后面会涉及大量小细节修改。反正这个能跑，错就错吧
 
-    /* 存储count字节后该文件将占用的块数 */
     uint32_t file_will_use_blocks = (file->fd_inode->i_size + count) / BLOCK_SIZE + 1;
 
     ASSERT(file_will_use_blocks <= 140);
 
-    /* 通过此增量判断是否需要分配扇区,如增量为0,表示原扇区够用 */
     uint32_t add_blocks = file_will_use_blocks - file_has_used_blocks;
 
-    /* 开始将文件所有块地址收集到all_blocks,(系统中块大小等于扇区大小)
-     * 后面都统一在all_blocks中获取写入扇区地址 */
     if (add_blocks == 0)
     {
-        /* 在同一扇区内写入数据,不涉及到分配新扇区 */
         if (file_has_used_blocks <= 12)
         {                                         // 文件数据量将在12块之内
             block_idx = file_has_used_blocks - 1; // 指向最后一个已有数据的扇区
@@ -322,7 +548,6 @@ int32_t file_write(struct file *file, const void *buf, uint32_t count)
         }
         else
         {
-            /* 未写入新数据之前已经占用了间接块,需要将间接块地址读进来 */
             ASSERT(file->fd_inode->i_sectors[12] != 0);
             indirect_block_table = file->fd_inode->i_sectors[12];
             ide_read(cur_part->my_disk, indirect_block_table, all_blocks + 12, 1);
@@ -330,16 +555,12 @@ int32_t file_write(struct file *file, const void *buf, uint32_t count)
     }
     else
     {
-        /* 若有增量,便涉及到分配新扇区及是否分配一级间接块表,下面要分三种情况处理 */
-        /* 第一种情况:12个直接块够用*/
         if (file_will_use_blocks <= 12)
         {
-            /* 先将有剩余空间的可继续用的扇区地址写入all_blocks */
             block_idx = file_has_used_blocks - 1;
             ASSERT(file->fd_inode->i_sectors[block_idx] != 0);
             all_blocks[block_idx] = file->fd_inode->i_sectors[block_idx];
 
-            /* 再将未来要用的扇区分配好后写入all_blocks */
             block_idx = file_has_used_blocks; // 指向第一个要分配的新扇区
             while (block_idx < file_will_use_blocks)
             {
@@ -350,11 +571,9 @@ int32_t file_write(struct file *file, const void *buf, uint32_t count)
                     return -1;
                 }
 
-                /* 写文件时,不应该存在块未使用但已经分配扇区的情况,当文件删除时,就会把块地址清0 */
                 ASSERT(file->fd_inode->i_sectors[block_idx] == 0); // 确保尚未分配扇区地址
                 file->fd_inode->i_sectors[block_idx] = all_blocks[block_idx] = block_lba;
 
-                /* 每分配一个块就将位图同步到硬盘 */
                 block_bitmap_idx = block_lba - cur_part->sb->data_start_lba;
                 bitmap_sync(cur_part, block_bitmap_idx, BLOCK_BITMAP);
 
@@ -363,13 +582,10 @@ int32_t file_write(struct file *file, const void *buf, uint32_t count)
         }
         else if (file_has_used_blocks <= 12 && file_will_use_blocks > 12)
         {
-            /* 第二种情况: 旧数据在12个直接块内,新数据将使用间接块*/
 
-            /* 先将有剩余空间的可继续用的扇区地址收集到all_blocks */
             block_idx = file_has_used_blocks - 1; // 指向旧数据所在的最后一个扇区
             all_blocks[block_idx] = file->fd_inode->i_sectors[block_idx];
 
-            /* 创建一级间接块表 */
             block_lba = block_bitmap_alloc(cur_part);
             if (block_lba == -1)
             {
@@ -378,7 +594,6 @@ int32_t file_write(struct file *file, const void *buf, uint32_t count)
             }
 
             ASSERT(file->fd_inode->i_sectors[12] == 0); // 确保一级间接块表未分配
-            /* 分配一级间接块索引表 */
             indirect_block_table = file->fd_inode->i_sectors[12] = block_lba;
 
             block_idx = file_has_used_blocks; // 第一个未使用的块,即本文件最后一个已经使用的直接块的下一块
@@ -401,7 +616,6 @@ int32_t file_write(struct file *file, const void *buf, uint32_t count)
                     all_blocks[block_idx] = block_lba;
                 }
 
-                /* 每分配一个块就将位图同步到硬盘 */
                 block_bitmap_idx = block_lba - cur_part->sb->data_start_lba;
                 bitmap_sync(cur_part, block_bitmap_idx, BLOCK_BITMAP);
 
@@ -411,11 +625,9 @@ int32_t file_write(struct file *file, const void *buf, uint32_t count)
         }
         else if (file_has_used_blocks > 12)
         {
-            /* 第三种情况:新数据占据间接块*/
             ASSERT(file->fd_inode->i_sectors[12] != 0);           // 已经具备了一级间接块表
             indirect_block_table = file->fd_inode->i_sectors[12]; // 获取一级间接表地址
 
-            /* 已使用的间接块也将被读入all_blocks,无须单独收录 */
             ide_read(cur_part->my_disk, indirect_block_table, all_blocks + 12, 1); // 获取所有间接块地址
 
             block_idx = file_has_used_blocks; // 第一个未使用的间接块,即已经使用的间接块的下一块
@@ -429,7 +641,6 @@ int32_t file_write(struct file *file, const void *buf, uint32_t count)
                 }
                 all_blocks[block_idx++] = block_lba;
 
-                /* 每分配一个块就将位图同步到硬盘 */
                 block_bitmap_idx = block_lba - cur_part->sb->data_start_lba;
                 bitmap_sync(cur_part, block_bitmap_idx, BLOCK_BITMAP);
             }
@@ -438,7 +649,6 @@ int32_t file_write(struct file *file, const void *buf, uint32_t count)
     }
 
     bool first_write_block = true; // 含有剩余空间的扇区标识
-    /* 块地址已经收集到all_blocks中,下面开始写数据 */
     file->fd_pos = file->fd_inode->i_size - 1; // 置fd_pos为文件大小-1,下面在写数据时随时更新
     while (bytes_written < count)
     { // 直到写完所有数据
@@ -448,7 +658,6 @@ int32_t file_write(struct file *file, const void *buf, uint32_t count)
         sec_off_bytes = file->fd_inode->i_size % BLOCK_SIZE;
         sec_left_bytes = BLOCK_SIZE - sec_off_bytes;
 
-        /* 判断此次写入硬盘的数据大小 */
         chunk_size = size_left < sec_left_bytes ? size_left : sec_left_bytes;
         if (first_write_block)
         {
@@ -470,14 +679,13 @@ int32_t file_write(struct file *file, const void *buf, uint32_t count)
     sys_free(io_buf);
     return bytes_written;
 }
-
-/* 从文件file中读取count个字节写入buf, 返回读出的字节数,若到文件尾则返回-1 */
+*/
+/*
 int32_t file_read(struct file *file, void *buf, uint32_t count)
 {
     uint8_t *buf_dst = (uint8_t *)buf;
     uint32_t size = count, size_left = size;
 
-    /* 若要读取的字节数超过了文件可读的剩余量, 就用剩余量做为待读取的字节数 */
     if ((file->fd_pos + count) > file->fd_inode->i_size)
     {
         size = file->fd_inode->i_size - file->fd_pos;
@@ -508,7 +716,6 @@ int32_t file_read(struct file *file, void *buf, uint32_t count)
     int32_t indirect_block_table; // 用来获取一级间接表地址
     uint32_t block_idx;           // 获取待读的块地址
 
-    /* 以下开始构建all_blocks块地址数组,专门存储用到的块地址(本程序中块大小同扇区大小) */
     if (read_blocks == 0)
     { // 在同一扇区内读数据,不涉及到跨扇区读取
         ASSERT(block_read_end_idx == block_read_start_idx);
@@ -525,7 +732,6 @@ int32_t file_read(struct file *file, void *buf, uint32_t count)
     }
     else
     { // 若要读多个块
-        /* 第一种情况: 起始块和终止块属于直接块*/
         if (block_read_end_idx < 12)
         { // 数据结束所在的块属于直接块
             block_idx = block_read_start_idx;
@@ -537,8 +743,6 @@ int32_t file_read(struct file *file, void *buf, uint32_t count)
         }
         else if (block_read_start_idx < 12 && block_read_end_idx >= 12)
         {
-            /* 第二种情况: 待读入的数据跨越直接块和间接块两类*/
-            /* 先将直接块地址写入all_blocks */
             block_idx = block_read_start_idx;
             while (block_idx < 12)
             {
@@ -547,20 +751,17 @@ int32_t file_read(struct file *file, void *buf, uint32_t count)
             }
             ASSERT(file->fd_inode->i_sectors[12] != 0); // 确保已经分配了一级间接块表
 
-            /* 再将间接块地址写入all_blocks */
             indirect_block_table = file->fd_inode->i_sectors[12];
             ide_read(cur_part->my_disk, indirect_block_table, all_blocks + 12, 1); // 将一级间接块表读进来写入到第13个块的位置之后
         }
         else
         {
-            /* 第三种情况: 数据在间接块中*/
             ASSERT(file->fd_inode->i_sectors[12] != 0);                            // 确保已经分配了一级间接块表
             indirect_block_table = file->fd_inode->i_sectors[12];                  // 获取一级间接表地址
             ide_read(cur_part->my_disk, indirect_block_table, all_blocks + 12, 1); // 将一级间接块表读进来写入到第13个块的位置之后
         }
     }
 
-    /* 用到的块地址已经收集到all_blocks中,下面开始读数据 */
     uint32_t sec_idx, sec_lba, sec_off_bytes, sec_left_bytes, chunk_size;
     uint32_t bytes_read = 0;
     while (bytes_read < size)
@@ -583,4 +784,191 @@ int32_t file_read(struct file *file, void *buf, uint32_t count)
     sys_free(all_blocks);
     sys_free(io_buf);
     return bytes_read;
+}*/
+static void buf_read(uint32_t* i_sectors,uint8_t* buf_dst,uint32_t used_index,uint32_t new_index,uint32_t used_size,uint32_t new_size,void* io_buf,uint32_t size_left)
+{
+      uint32_t block_offset = used_size % BLOCK_SIZE;
+  
+      uint32_t bytes_written = 0;
+      if (block_offset)
+      {
+        if (used_index== new_index)
+        {
+          uint32_t block_lba = i_sectors[used_index- 1];
+          ide_read(cur_part->my_disk,block_lba,io_buf,1);
+          memcpy(buf_dst,io_buf + block_offset,size_left);
+      return;
+        } else
+        {
+          uint32_t block_lba = i_sectors[used_index -1];
+          ide_read(cur_part->my_disk,block_lba,io_buf,1);
+          memcpy(buf_dst,io_buf + block_offset,BLOCK_SIZE - block_offset);
+          bytes_written += BLOCK_SIZE - block_offset;
+       }
+      }
+      uint32_t end_offset= new_size % BLOCK_SIZE;
+      for (uint32_t i = used_index; i < new_index-1; i++)
+      {
+        uint32_t lba = i_sectors[i];
+        ide_read(cur_part->my_disk,lba,io_buf,1);
+        memcpy(buf_dst + bytes_written,io_buf,BLOCK_SIZE);
+        bytes_written += BLOCK_SIZE;
+      }
+      uint32_t left_size = end_offset ? end_offset : BLOCK_SIZE;
+      uint32_t lba = i_sectors[new_index-1];
+      ide_read(cur_part->my_disk,lba,io_buf,1);
+      memcpy(buf_dst + bytes_written,io_buf,left_size);
+      bytes_written += left_size;
 }
+int32_t file_read(struct file *file, void *buf, uint32_t count)
+{
+    uint8_t *buf_dst = (uint8_t *)buf;
+    uint32_t size = count, size_left = size;
+
+    /* 若要读取的字节数超过了文件可读的剩余量, 就用剩余量做为待读取的字节数 */
+    if ((file->fd_pos + count) > file->fd_inode->i_size)
+    {
+        size = file->fd_inode->i_size - file->fd_pos;
+        size_left = size;
+        if (size == 0)
+        { // 若到文件尾则返回-1
+            return -1;
+        }
+    }
+
+    uint8_t *io_buf = sys_malloc(BLOCK_SIZE);
+    if (io_buf == NULL)
+    {
+        printk("file_read: sys_malloc for io_buf failed\n");
+    }
+
+  uint32_t* lba_buf = sys_malloc(BLOCK_SIZE);
+  uint32_t* double_buf = sys_malloc(BLOCK_SIZE);
+  uint32_t used_size = file->fd_pos;
+  uint32_t new_size = file->fd_pos + size_left;
+  struct index used_index = get_index(used_size);
+  struct index new_index = get_index(new_size);
+  if ((used_index.dou == 0 && used_index.direct != 0) || used_size == 0)
+  {
+    if (new_index.dou == 0 && new_index.direct != 0){
+      buf_read(file->fd_inode->i_sectors,buf_dst,used_index.direct,new_index.direct,used_size,new_size,io_buf,size_left);
+    } else if (new_index.dou == 0 && new_index.sing != 0)
+    {
+      uint32_t bytes_written = 0;
+      buf_read(file->fd_inode->i_sectors,buf_dst,used_index.direct,12,used_size,12*BLOCK_SIZE,io_buf,12*BLOCK_SIZE - used_size);
+      bytes_written += 12*BLOCK_SIZE - used_size;
+      uint32_t sing_lba = file->fd_inode->i_sectors[12];
+      memset(lba_buf,0,BLOCK_SIZE);
+      ide_read(cur_part->my_disk,sing_lba,lba_buf,1);
+      buf_read(lba_buf,buf_dst + bytes_written,0,new_index.sing,12*BLOCK_SIZE,new_size,io_buf,new_size - bytes_written);
+    } else 
+    {
+      uint32_t bytes_written = 0;
+      buf_read(file->fd_inode->i_sectors,buf_dst,used_index.direct,12,used_size,12*BLOCK_SIZE,io_buf,12*BLOCK_SIZE - used_size);
+      bytes_written += 12*BLOCK_SIZE - used_size;
+      uint32_t sing_lba = file->fd_inode->i_sectors[12];
+      memset(lba_buf,0,BLOCK_SIZE);
+      ide_read(cur_part->my_disk,sing_lba,lba_buf,1);
+ 
+      buf_read(lba_buf,buf_dst + bytes_written,0,128,12*BLOCK_SIZE,140*BLOCK_SIZE,io_buf,128*BLOCK_SIZE);
+
+      bytes_written += 128*BLOCK_SIZE;
+      uint32_t double_lba = file->fd_inode->i_sectors[13];
+      memset(double_buf,0,BLOCK_SIZE);
+      ide_read(cur_part->my_disk,double_lba,double_buf,1);
+      for (uint32_t i = 0; i < new_index.sing; i++){
+        uint32_t lba = double_buf[i];
+        memset(lba_buf,0,BLOCK_SIZE);
+        ide_read(cur_part->my_disk,lba,lba_buf,1);
+        buf_read(lba_buf,buf_dst + bytes_written,0,128,0,0,io_buf,128*BLOCK_SIZE);
+        bytes_written += 128*BLOCK_SIZE;
+      }
+      if (new_index.direct != 0)
+      {
+        uint32_t lba = double_buf[new_index.sing];
+        memset(lba_buf,0,BLOCK_SIZE);
+        ide_read(cur_part->my_disk,lba,lba_buf,1);
+        buf_read(lba_buf,buf_dst + bytes_written,0,new_index.direct,0,new_size,io_buf,new_size - bytes_written);
+      }
+
+    }
+  } else if (used_index.dou == 0 && used_index.sing != 0)
+  {
+    if (new_index.dou == 0 && new_index.sing != 0)
+    {
+      int32_t sing_lba = file->fd_inode->i_sectors[12];
+      memset(lba_buf,0,BLOCK_SIZE);
+      ide_read(cur_part->my_disk,sing_lba,lba_buf,1);
+      buf_read(lba_buf,buf_dst,used_index.sing,new_index.sing,used_size,new_size,io_buf,size_left);
+    } else
+    {
+      uint32_t bytes_written = 0;
+      uint32_t sing_lba = file->fd_inode->i_sectors[12];
+      memset(lba_buf,0,BLOCK_SIZE);
+      ide_read(cur_part->my_disk,sing_lba,lba_buf,1);
+      buf_read(lba_buf,buf_dst,used_index.sing,128,used_size,140*BLOCK_SIZE,io_buf,140*BLOCK_SIZE - used_size);
+      bytes_written += 140*BLOCK_SIZE - used_size;
+      uint32_t double_lba = file->fd_inode->i_sectors[13];
+      memset(double_buf,0,BLOCK_SIZE);
+      ide_read(cur_part->my_disk,double_lba,double_buf,1);
+      for (uint32_t i = 0; i < new_index.sing; i++){
+        uint32_t lba = double_buf[i];
+        memset(lba_buf,0,BLOCK_SIZE);
+        ide_read(cur_part->my_disk,lba,lba_buf,1);
+        buf_read(lba_buf,buf_dst + bytes_written,0,128,0,0,io_buf,128*BLOCK_SIZE);
+        bytes_written += 128*BLOCK_SIZE;
+      }
+      if (new_index.direct != 0)
+      {
+        uint32_t lba = double_buf[new_index.sing];
+        memset(lba_buf,0,BLOCK_SIZE);
+        ide_read(cur_part->my_disk,lba,lba_buf,1);
+        buf_read(lba_buf,buf_dst + bytes_written,0,new_index.direct,0,new_size,io_buf,new_size - bytes_written);
+      }
+     
+    }
+  } else
+  {
+    uint32_t double_lba = file->fd_inode->i_sectors[13];
+    memset(double_buf,0,BLOCK_SIZE);
+    ide_read(cur_part->my_disk,double_lba,double_buf,1);
+    if (used_index.sing == new_index.sing)
+    {
+      uint32_t lba = double_buf[used_index.sing];
+      memset(lba_buf,0,BLOCK_SIZE);
+      ide_read(cur_part->my_disk,lba,lba_buf,1);
+      buf_read(lba_buf,buf_dst,used_index.direct,new_index.direct,used_size,new_size,io_buf,size_left);
+    } else
+    {
+      uint32_t bytes_written =0;
+      if (used_index.direct != 0)
+      {
+        uint32_t lba = double_buf[used_index.sing];
+        memset(lba_buf,0,BLOCK_SIZE);
+        ide_read(cur_part->my_disk,lba,lba_buf,1);
+        buf_read(lba_buf,buf_dst,used_index.direct,128,used_size,0,io_buf,140*BLOCK_SIZE + (used_index.sing +1)*128*BLOCK_SIZE - used_size);
+        bytes_written += 140*BLOCK_SIZE + (used_index.sing +1)*128*BLOCK_SIZE - used_size;
+      }
+     for (uint32_t i = used_index.sing +1; i < new_index.sing ; i++)
+      {
+        uint32_t lba = double_buf[i];
+        memset(lba_buf,0,BLOCK_SIZE);
+        ide_read(cur_part->my_disk,lba,lba_buf,1);
+        buf_read(lba_buf,buf_dst + bytes_written,0,128,0,0,io_buf,128*BLOCK_SIZE);
+        bytes_written += 128*BLOCK_SIZE;
+      }
+      if (new_index.direct != 0)
+      {
+        uint32_t lba = double_buf[new_index.sing];
+        memset(lba_buf,0,BLOCK_SIZE);
+        ide_read(cur_part->my_disk,lba,lba_buf,1);
+        buf_read(lba_buf,buf_dst + bytes_written,0,new_index.direct,0,new_size,io_buf,new_size - bytes_written);
+      }
+    }
+  }
+  sys_free(io_buf);
+  sys_free(double_buf);
+  sys_free(lba_buf);
+  return size_left;
+}
+

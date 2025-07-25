@@ -4,8 +4,12 @@
 #include "inode.h"
 #include "dir.h"
 
-#define MAX_FILE_OPEN 32 // 系统可打开的最大文件数
 
+#define MAX_FILE_OPEN 32 // 系统可打开的最大文件数
+typedef struct {
+  uint32_t fd;
+}FILE;
+extern FILE *stderr;
 /* 文件结构 */
 struct file
 {
@@ -42,4 +46,5 @@ int32_t file_open(uint32_t inode_no, uint8_t flag);
 int32_t file_close(struct file *file);
 int32_t file_write(struct file *file, const void *buf, uint32_t count);
 int32_t file_read(struct file *file, void *buf, uint32_t count);
+struct index get_index(uint32_t size);
 #endif

@@ -56,4 +56,5 @@ void pfree(uint32_t pg_phy_addr);
 void sys_free(void* ptr);
 void *get_a_page_without_opvaddrbitmap(enum pool_flags pf, uint32_t vaddr);
 void free_a_phy_page(uint32_t pg_phy_addr);
+void *sys_realloc(void *ptr, uint32_t size);
 #endif

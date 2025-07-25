@@ -167,7 +167,7 @@ void inode_init(uint32_t inode_no, struct inode *new_inode)
 
     /* 初始化块索引数组i_sector */
     uint8_t sec_idx = 0;
-    while (sec_idx < 13)
+    while (sec_idx < 14)
     {
         /* i_sectors[12]为一级间接块地址 */
         new_inode->i_sectors[sec_idx] = 0;
@@ -265,3 +265,5 @@ void inode_release(struct partition *part, uint32_t inode_no)
 
     inode_close(inode_to_del);
 }
+
+

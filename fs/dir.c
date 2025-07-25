@@ -7,6 +7,18 @@
 #include "file.h"
 
 struct dir root_dir; // 根目录
+static uint32_t get_lba(void)
+{
+  int32_t block_lba = block_bitmap_alloc(cur_part);
+  if (block_lba == -1)
+  {
+    while(1);
+  }
+  int32_t block_bitmap_idx = block_lba - cur_part->sb->data_start_lba;
+  ASSERT(block_bitmap_idx != 0);
+  bitmap_sync(cur_part, block_bitmap_idx, BLOCK_BITMAP);
+  return (uint32_t)block_lba;
+}
 
 /* 打开根目录 */
 void open_root_dir(struct partition *part)
@@ -24,13 +36,11 @@ struct dir *dir_open(struct partition *part, uint32_t inode_no)
     return pdir;
 }
 
-/* 在part分区内的pdir目录内寻找名为name的文件或目录,
- * 找到后返回true并将其目录项存入dir_e,否则返回false */
+/*** 在part分区内的pdir目录内寻找名为name的文件或目录,
 bool search_dir_entry(struct partition *part, struct dir *pdir, const char *name, struct dir_entry *dir_e)
 {
     uint32_t block_cnt = 140; // 12个直接块+128个一级间接块=140块
 
-    /* 12个直接块大小+128个间接块,共560字节 */
     uint32_t *all_blocks = (uint32_t *)sys_malloc(48 + 512);
     if (all_blocks == NULL)
     {
@@ -50,19 +60,13 @@ bool search_dir_entry(struct partition *part, struct dir *pdir, const char *name
     { // 若含有一级间接块表
         ide_read(part->my_disk, pdir->inode->i_sectors[12], all_blocks + 12, 1);
     }
-    /* 至此,all_blocks存储的是该文件或目录的所有扇区地址 */
-
-    /* 写目录项的时候已保证目录项不跨扇区,
-     * 这样读目录项时容易处理, 只申请容纳1个扇区的内存 */
-    uint8_t *buf = (uint8_t *)sys_malloc(SECTOR_SIZE);
+   uint8_t *buf = (uint8_t *)sys_malloc(SECTOR_SIZE);
     struct dir_entry *p_de = (struct dir_entry *)buf; // p_de为指向目录项的指针,值为buf起始地址
     uint32_t dir_entry_size = part->sb->dir_entry_size;
     uint32_t dir_entry_cnt = SECTOR_SIZE / dir_entry_size; // 1扇区内可容纳的目录项个数
 
-    /* 开始在所有块中查找目录项 */
     while (block_idx < block_cnt)
     {
-        /* 块地址为0时表示该块中无数据,继续在其它块中找 */
         if (all_blocks[block_idx] == 0)
         {
             block_idx++;
@@ -71,10 +75,8 @@ bool search_dir_entry(struct partition *part, struct dir *pdir, const char *name
         ide_read(part->my_disk, all_blocks[block_idx], buf, 1);
 
         uint32_t dir_entry_idx = 0;
-        /* 遍历扇区中所有目录项 */
         while (dir_entry_idx < dir_entry_cnt)
         {
-            /* 若找到了,就直接复制整个目录项 */
             if (!strcmp(p_de->filename, name))
             {
                 memcpy(dir_e, p_de, dir_entry_size);
@@ -92,8 +94,78 @@ bool search_dir_entry(struct partition *part, struct dir *pdir, const char *name
     sys_free(buf);
     sys_free(all_blocks);
     return false;
-}
+}*/
+static bool buf_find(struct partition *part,uint32_t * i_sectors,const char* name,struct dir_entry* dir_e,void* buf,uint32_t dir_entry_size,uint32_t index){
+  struct dir_entry *p_de = (struct dir_entry *)buf; // p_de为指向目录项的指针,值为buf起始地址
+  uint32_t dir_entry_cnt = SECTOR_SIZE / dir_entry_size; // 1扇区内可容纳的目录项个数
+  for (uint32_t i = 0; i<index;i++){
+    uint32_t lba = i_sectors[i];
+    if (lba == 0){
+      continue;
+     }
+    ide_read(part->my_disk,lba,buf,1);
+        uint32_t dir_entry_idx = 0;
+        /* 遍历扇区中所有目录项 */
+        while (dir_entry_idx < dir_entry_cnt)
+        {
+            /* 若找到了,就直接复制整个目录项 */
+            if (!strcmp(p_de->filename, name))
+            {
+                memcpy(dir_e, p_de, dir_entry_size);
+                sys_free(buf);
+                return true;
+            }
+            dir_entry_idx++;
+            p_de++;
+        }
 
+    }
+  return false;
+}
+bool search_dir_entry(struct partition *part, struct dir *pdir, const char *name, struct dir_entry *dir_e){
+  uint8_t *buf = (uint8_t *)sys_malloc(SECTOR_SIZE);
+  uint32_t dir_entry_size = part->sb->dir_entry_size;
+  uint32_t* lba_buf = sys_malloc(512);
+  uint32_t* double_buf = sys_malloc(512);
+  if(buf_find(part,pdir->inode->i_sectors,name,dir_e,buf,dir_entry_size,12)){
+    sys_free(lba_buf);
+    sys_free(double_buf);
+    return true;
+  }
+
+  uint32_t sing_lba = pdir->inode->i_sectors[12];
+  if (sing_lba != 0){
+    memset(lba_buf,0,512);
+    ide_read(cur_part->my_disk,sing_lba,lba_buf,1);
+    if(buf_find(part,lba_buf,name,dir_e,buf,dir_entry_size,128)){
+      sys_free(lba_buf);
+      sys_free(double_buf);
+      return true;
+    }
+  }
+  uint32_t double_lba = pdir->inode->i_sectors[13];
+  memset(double_buf,0,512);
+  ide_read(cur_part->my_disk,double_lba,double_buf,1);
+  if(double_lba != 0){
+    for (uint32_t i = 0; i<128;i++)
+    {
+      uint32_t lba = double_buf[i];
+      if (lba != 0){
+        memset(lba_buf,0,512);
+        ide_read(cur_part->my_disk,lba,lba_buf,1);
+       if(buf_find(part,lba_buf,name,dir_e,buf,dir_entry_size,128)){
+        sys_free(lba_buf);
+        sys_free(double_buf);
+        return true;
+       }
+      }
+    }
+  }
+  sys_free(buf);
+  sys_free(lba_buf);
+  sys_free(double_buf);
+  return false;
+}
 /* 关闭目录 */
 void dir_close(struct dir *dir)
 {
@@ -119,8 +191,7 @@ void create_dir_entry(char *filename, uint32_t inode_no, uint8_t file_type, stru
     p_de->i_no = inode_no;
     p_de->f_type = file_type;
 }
-
-/* 将目录项p_de写入父目录parent_dir中,io_buf由主调函数提供 */
+/*
 bool sync_dir_entry(struct dir *parent_dir, struct dir_entry *p_de, void *io_buf)
 {
     struct inode *dir_inode = parent_dir->inode;
@@ -132,11 +203,9 @@ bool sync_dir_entry(struct dir *parent_dir, struct dir_entry *p_de, void *io_buf
     uint32_t dir_entrys_per_sec = (512 / dir_entry_size); // 每扇区最大的目录项数目
     int32_t block_lba = -1;
 
-    /* 将该目录的所有扇区地址(12个直接块+ 128个间接块)存入all_blocks */
     uint8_t block_idx = 0;
     uint32_t all_blocks[140] = {0}; // all_blocks保存目录所有的块
 
-    /* 将12个直接块存入all_blocks */
     while (block_idx < 12)
     {
         all_blocks[block_idx] = dir_inode->i_sectors[block_idx];
@@ -150,8 +219,6 @@ bool sync_dir_entry(struct dir *parent_dir, struct dir_entry *p_de, void *io_buf
     struct dir_entry *dir_e = (struct dir_entry *)io_buf; // dir_e用来在io_buf中遍历目录项
     int32_t block_bitmap_idx = -1;
 
-    /* 开始遍历所有块以寻找目录项空位,若已有扇区中没有空闲位,
-     * 在不超过文件大小的情况下申请新扇区来存储新目录项 */
     block_idx = 0;
     while (block_idx < 140)
     { // 文件(包括目录)最大支持12个直接块+128个间接块＝140个块
@@ -165,7 +232,6 @@ bool sync_dir_entry(struct dir *parent_dir, struct dir_entry *p_de, void *io_buf
                 return false;
             }
 
-            /* 每分配一个块就同步一次block_bitmap */
             block_bitmap_idx = block_lba - cur_part->sb->data_start_lba;
             ASSERT(block_bitmap_idx != -1);
             bitmap_sync(cur_part, block_bitmap_idx, BLOCK_BITMAP);
@@ -189,23 +255,19 @@ bool sync_dir_entry(struct dir *parent_dir, struct dir_entry *p_de, void *io_buf
                     return false;
                 }
 
-                /* 每分配一个块就同步一次block_bitmap */
                 block_bitmap_idx = block_lba - cur_part->sb->data_start_lba;
                 ASSERT(block_bitmap_idx != -1);
                 bitmap_sync(cur_part, block_bitmap_idx, BLOCK_BITMAP);
 
                 all_blocks[12] = block_lba;
-                /* 把新分配的第0个间接块地址写入一级间接块表 */
                 ide_write(cur_part->my_disk, dir_inode->i_sectors[12], all_blocks + 12, 1);
             }
             else
             { // 若是间接块未分配
                 all_blocks[block_idx] = block_lba;
-                /* 把新分配的第(block_idx-12)个间接块地址写入一级间接块表 */
                 ide_write(cur_part->my_disk, dir_inode->i_sectors[12], all_blocks + 12, 1);
             }
 
-            /* 再将新目录项p_de写入新分配的间接块 */
             memset(io_buf, 0, 512);
             memcpy(io_buf, p_de, dir_entry_size);
             ide_write(cur_part->my_disk, all_blocks[block_idx], io_buf, 1);
@@ -213,9 +275,7 @@ bool sync_dir_entry(struct dir *parent_dir, struct dir_entry *p_de, void *io_buf
             return true;
         }
 
-        /* 若第block_idx块已存在,将其读进内存,然后在该块中查找空目录项 */
         ide_read(cur_part->my_disk, all_blocks[block_idx], io_buf, 1);
-        /* 在扇区内查找空目录项 */
         uint8_t dir_entry_idx = 0;
         while (dir_entry_idx < dir_entrys_per_sec)
         {
@@ -233,7 +293,7 @@ bool sync_dir_entry(struct dir *parent_dir, struct dir_entry *p_de, void *io_buf
     }
     printk("directory is full!\n");
     return false;
-}
+}*/
 
 /* 把分区part目录pdir中编号为inode_no的目录项删除 */
 bool delete_dir_entry(struct partition *part, struct dir *pdir, uint32_t inode_no, void *io_buf)
@@ -427,7 +487,119 @@ struct dir_entry *dir_read(struct dir *dir)
     }
     return NULL;
 }
+static bool buf_write(struct dir_entry* p_de,uint32_t index,void* io_buf,uint32_t* i_sectors,uint32_t dir_entry_size){
+  for (uint32_t i = 0; i<index;i++)
+  {
+    uint32_t lba = i_sectors[i];
+    if (lba == 0)
+    {
+      uint32_t lba = get_lba();
+      i_sectors[i] = lba;
+      memset(io_buf, 0, 512);
+      memcpy(io_buf, p_de, dir_entry_size);
+      ide_write(cur_part->my_disk, lba, io_buf, 1);
+      return true;
+    } else 
+    {
+      memset(io_buf, 0, 512);
+      ide_read(cur_part->my_disk,lba,io_buf,1);
+      struct dir_entry* de = io_buf;
+      uint32_t cnt = 512/dir_entry_size;
+      for (uint32_t i = 0; i<cnt;i++)
+      {
+        if (de->f_type == FT_UNKNOWN)
+        {
+          memcpy(de, p_de, dir_entry_size);
+          ide_write(cur_part->my_disk, lba, io_buf, 1);
+          return true;
+        }
+        de++;
+      }
 
+
+    }
+  }
+  return false;
+}
+bool sync_dir_entry(struct dir *parent_dir, struct dir_entry *p_de, void *io_buf)
+{
+  struct inode *dir_inode = parent_dir->inode;
+  uint32_t dir_size = dir_inode->i_size;
+  uint32_t dir_entry_size = cur_part->sb->dir_entry_size;
+
+  ASSERT(dir_size % dir_entry_size == 0); // dir_size应该是dir_entry_size的整数倍
+
+  uint32_t dir_entrys_per_sec = (512 / dir_entry_size);
+  uint32_t* lba_buf = sys_malloc(512);
+  uint32_t* double_buf = sys_malloc(512);
+  if(buf_write(p_de,12,io_buf,dir_inode->i_sectors,dir_entry_size))
+  {
+    dir_inode->i_size += dir_entry_size;
+    sys_free(lba_buf);
+    sys_free(double_buf);
+    return true;
+  }
+  uint32_t sing_lba = dir_inode->i_sectors[12];
+  if (sing_lba != 0)
+  {
+    memset(lba_buf,0,512);
+    ide_read(cur_part->my_disk,sing_lba,lba_buf,1);
+    if (buf_write(p_de,128,io_buf,lba_buf,dir_entry_size))
+    {
+      dir_inode->i_size += dir_entry_size;
+      sys_free(lba_buf);
+      sys_free(double_buf);
+ 
+      return true;
+    }
+  } else
+  {
+    sing_lba = get_lba();
+    dir_inode->i_sectors[12] = sing_lba;
+    memset(lba_buf,0,512);
+    ide_read(cur_part->my_disk,sing_lba,lba_buf,1);
+    if (buf_write(p_de,128,io_buf,lba_buf,dir_entry_size))
+    {
+      dir_inode->i_size += dir_entry_size;
+      sys_free(lba_buf);
+      sys_free(double_buf);
+ 
+      return true;
+    }
+  }
+  uint32_t double_lba = dir_inode->i_sectors[13];
+  if (double_lba == 0)
+  {
+    double_lba = get_lba();
+    dir_inode->i_sectors[13] = double_lba;
+  }
+  memset(double_buf,0,512);
+  ide_read(cur_part->my_disk,double_lba,double_buf,1);
+  for (uint32_t i = 0; i<128;i++)
+  {
+
+    uint32_t lba = double_buf[i];
+    if (lba == 0)
+    {
+      lba = get_lba();
+      double_buf[i] = lba;
+    }
+    memset(lba_buf,0,512);
+    ide_read(cur_part->my_disk,lba,lba_buf,1);
+    if (buf_write(p_de,128,io_buf,lba_buf,dir_entry_size))
+    {
+      dir_inode->i_size += dir_entry_size;
+      sys_free(lba_buf);
+      sys_free(double_buf);
+ 
+      return true;
+    }
+  }
+  sys_free(lba_buf);
+  sys_free(double_buf);
+ 
+  return false;
+}
 /* 判断目录是否为空 */
 bool dir_is_empty(struct dir *dir)
 {

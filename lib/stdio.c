@@ -1,4 +1,5 @@
 #include "stdio.h"
+#include "file.h"
 #include "stdint.h"
 #include "string.h"
 #include "global.h"
@@ -96,4 +97,87 @@ uint32_t sprintf(char *buf, const char *format, ...)
     retval = vsprintf(buf, format, args);
     va_end(args);
     return retval;
+}
+
+int snprintf(char *str, uint32_t size, const char *format, ...) {
+    va_list args;
+    int written;
+
+    va_start(args, format);
+    written = vsprintf(str, format, args); // 用已有的 vsprintf（或 sprintf）
+    va_end(args);
+
+    // 如果写入内容超过了 size，则进行截断
+    if ((uint32_t)written >= size && size > 0) {
+        str[size - 1] = '\0'; // 确保字符串以 null 结尾
+    }
+
+    return written;
+}
+int puts(const char* str) {
+    while (*str) {
+        putchar(*str++);  // 你自己实现的输出单个字符的函数
+    }
+    putchar('\n');  // 添加换行
+    return 0;
+}
+int fprintf(FILE *stream, const char *format, ...) {
+    char buf[256];  // 可根据需求扩大
+    va_list args;
+    va_start(args, format);
+    int len = snprintf(buf, sizeof(buf), format, args);
+    va_end(args);
+
+    if (len < 0) return -1;
+    return write(stream->fd, buf, len);
+}
+
+FILE * fopen(const char *pathname, uint8_t flags){
+  FILE * file = (FILE *)malloc(sizeof(FILE));
+  uint32_t fd = open(pathname,flags);
+  file->fd = fd;
+  return file;
+}
+int fclose(FILE * file){
+  // free
+  int result = close(file->fd);
+  free(file);
+  return result;
+}
+uint32_t fread(void* buff,uint32_t size,uint32_t nmemb,FILE * stream){
+  return read(stream->fd,buff,nmemb * size);
+}
+uint32_t fwrite(void* buff,uint32_t size,uint32_t nmemb,FILE* stream){
+  return write(stream->fd,buff,nmemb * size);
+}
+
+long ftell(FILE * stream){
+  return lseek(stream->fd,0,SEEK_CUR);
+}
+int remove(const char *filename) {
+    return unlink(filename);  // 或你自己的系统调用
+}
+int fseek(FILE *stream, long offset, int whence){
+  return lseek(stream->fd,offset,whence);
+}
+int rename(const char *oldpath, const char *newpath){
+  return 1;
+}
+int vfprintf(FILE *stream, const char *format, va_list ap) {
+  char * str;
+  return vsprintf(str,format, ap);
+}
+int vsnprintf(char *str, uint32_t size, const char *format, va_list ap) {
+    if (size > 2) str[0] = '\0';
+    return 0;
+}
+int system(const char *command){
+  return 0;
+
+}
+int fflush(FILE *stream){
+  return 0;
+}
+double atof(const char *nptr){
+  return 0;
 }

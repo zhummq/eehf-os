@@ -686,3 +686,28 @@ void free_a_phy_page(uint32_t pg_phy_addr)
     }
     bitmap_set(&mem_pool->pool_bitmap, bit_idx, 0);
 }
+static uint32_t get_ptr_size(void * ptr){
+  struct mem_block *b = ptr;
+  struct arena *a = block2arena(b);
+  if (a->desc == NULL && a->large == true){
+    return a->cnt * PG_SIZE;
+  } else {
+    return a->desc->block_size;
+  }
+}
+void *sys_realloc(void *ptr, uint32_t size){
+  if (size == 0){
+    sys_free(ptr);
+    return NULL;
+  }
+  if (ptr == NULL){
+    return sys_malloc(size);
+  }
+  uint32_t old_size = get_ptr_size(ptr);
+  void * new_ptr = sys_malloc(size);
+  if (!new_ptr) return NULL;
+  uint32_t copy_size = old_size < size ? old_size : size;
+  memcpy(new_ptr,ptr,copy_size);
+  sys_free(ptr);
+  return new_ptr;
+}

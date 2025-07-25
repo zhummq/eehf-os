@@ -175,7 +175,7 @@ static void ide_read_one(struct disk* hd, uint32_t lba, void* buf, uint32_t sec_
 }
 void ide_read(struct disk* hd, uint32_t lba, void* buf, uint32_t sec_cnt){
   for (uint32_t i = 0; i<sec_cnt; i++){
-      ide_read_one(hd, lba, buf, 1);
+      ide_read_one(hd, lba + i, buf + i*512, 1);
   }
 } 
 /* 将buf中sec_cnt扇区数据写入硬盘 */
@@ -224,7 +224,7 @@ static void ide_write_one(struct disk* hd, uint32_t lba, void* buf, uint32_t sec
 }
 void ide_write(struct disk* hd, uint32_t lba, void* buf, uint32_t sec_cnt){
   for (uint32_t i = 0; i<sec_cnt; i++){
-      ide_write_one(hd, lba, buf, 1);
+      ide_write_one(hd, lba +i, buf + i*512, 1);
   }
 } 
 

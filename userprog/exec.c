@@ -54,7 +54,7 @@ enum segment_type
 };
 
 /* 将文件描述符fd指向的文件中,偏移为offset,大小为filesz的段加载到虚拟地址为vaddr的内存 */
-static bool segment_load(int32_t fd, uint32_t offset, uint32_t filesz, uint32_t vaddr)
+static bool segment_load(int32_t fd, uint32_t offset, uint32_t filesz, uint32_t vaddr,uint32_t memsz)
 {
     uint32_t vaddr_first_page = vaddr & 0xfffff000;               // vaddr地址所在的页框
     uint32_t size_in_first_page = PG_SIZE - (vaddr & 0x00000fff); // 加载到内存后,文件在第一个页框中占用的字节大小
@@ -62,7 +62,7 @@ static bool segment_load(int32_t fd, uint32_t offset, uint32_t filesz, uint32_t 
     /* 若一个页框容不下该段 */
     if (filesz > size_in_first_page)
     {
-        uint32_t left_size = filesz - size_in_first_page;
+        uint32_t left_size = memsz- size_in_first_page;
         occupy_pages = DIV_ROUND_UP(left_size, PG_SIZE) + 1; // 1是指vaddr_first_page
     }
     else
@@ -93,6 +93,7 @@ static bool segment_load(int32_t fd, uint32_t offset, uint32_t filesz, uint32_t 
     }
     sys_lseek(fd, offset, SEEK_SET);
     sys_read(fd, (void *)vaddr, filesz);
+    memset((void*)(vaddr+filesz),0,memsz-filesz);
     return true;
 }
 
@@ -145,7 +146,7 @@ static int32_t load(const char *pathname)
         /* 如果是可加载段就调用segment_load加载到内存 */
         if (PT_LOAD == prog_header.p_type)
         {
-            if (!segment_load(fd, prog_header.p_offset, prog_header.p_filesz, prog_header.p_vaddr))
+            if (!segment_load(fd, prog_header.p_offset, prog_header.p_filesz, prog_header.p_vaddr,prog_header.p_memsz))
             {
                 ret = -1;
                 goto done;

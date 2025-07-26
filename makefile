@@ -186,7 +186,7 @@ mk_dir:
 hd:
 	dd if=build/mbr.o of=$(HD60M_PATH) count=1 bs=512 conv=notrunc && \
 	dd if=build/loader.o of=$(HD60M_PATH) count=10 bs=512 seek=2 conv=notrunc && \
-	dd if=$(BUILD_DIR)/kernel.bin of=$(HD60M_PATH) bs=512 count=700 seek=9 conv=notrunc
+	dd if=$(BUILD_DIR)/kernel.elf of=$(HD60M_PATH) bs=512 count=700 seek=9 conv=notrunc
 	
 clean:
 	@cd $(BUILD_DIR) && rm -f ./* && echo "remove ./build all done"
@@ -211,8 +211,9 @@ qemu-gdb:
 #生成可以被GDB理解的符号表，用于GDB调试
 gdb_symbol:
 	objcopy --only-keep-debug $(BUILD_DIR)/kernel.bin $(BUILD_DIR)/kernel.sym
+	objcopy --strip-debug $(BUILD_DIR)/kernel.bin $(BUILD_DIR)/kernel.elf
 run:
 	sudo /home/eehf/bochs-e1000-2.8/bin/bochs 
-all:mk_dir boot build hd gdb_symbol qemu
-gdb:mk_dir boot build hd gdb_symbol qemu-gdb
+all:mk_dir boot build gdb_symbol hd qemu
+gdb:mk_dir boot build gdb_symbol hd qemu-gdb
 #make all 就是依次执行mk_dir build hd gdb_symbol

@@ -109,7 +109,7 @@ p_mode_start:
 
     mov esi, KERNEL_START_SECTOR        ; kernel.bin所在的扇区号
     mov edi, KERNEL_BIN_BASE_ADDR       ; 从磁盘读出后，写入到ebx指定的地址
-    mov cl, 200                ; 读入的扇区数
+    mov cl, 250                ; 读入的扇区数
     call rd_disk_m_32
                                                      ; -------------------------   加载kernel  ----------------------
                                                             

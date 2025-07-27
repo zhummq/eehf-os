@@ -8,6 +8,7 @@
 #include "console.h"
 #include "ide.h"
 #include "stdio-kernel.h"
+#include "process.h"
 
 void init(void);
 
@@ -35,7 +36,8 @@ int main(void)
     }
 
     //cls_screen();
-    console_put_str("[eehf@localhost /]$ ");
+
+    process_execute(init, "init"); // 放在第一个初始化,这是第一个进程,init进程的pid为1
     thread_exit(running_thread(), true);
     return 0;
 }

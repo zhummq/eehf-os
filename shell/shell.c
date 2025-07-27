@@ -18,7 +18,7 @@ static char cmd_line[cmd_len] = {0};
 /* 输出提示符 */
 void print_prompt(void)
 {
-    printf("[eehf@localhost %s]$ ", cwd_cache);
+  printf("[eehf@localhost %s]$ ", cwd_cache);
 }
 
 /* 从键盘缓冲区中最多读入count个字节到buf。*/

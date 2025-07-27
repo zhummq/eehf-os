@@ -4,7 +4,10 @@
 
 #define VGA_QEMU_VENDER_ID 0x1234
 #define VGA_QEMU_DEVICE_ID 0x1111
-
-void vga_init(void);
+#define WIN_HEIGHT 768
+#define WIN_WIDTH 1024
+void bga_init(void);
 void put_piexl(uint32_t x,uint32_t y,uint32_t color);
+void roll_screen(void);
+void cls_vga(void);
 #endif

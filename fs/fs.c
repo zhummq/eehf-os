@@ -14,6 +14,7 @@
 #include "keyboard.h"
 #include "ioqueue.h"
 #include "pipe.h"
+#include "print-bga.h"
 
 struct partition *cur_part; // 默认情况下操作的是哪个分区
 
@@ -534,7 +535,7 @@ int32_t sys_write(int32_t fd, const void *buf, uint32_t count)
         {
             char tmp_buf[1024] = {0};
             memcpy(tmp_buf, buf, count);
-            console_put_str(tmp_buf);
+            put_string_bga(tmp_buf);
             return count;
         }
     }
@@ -1103,7 +1104,7 @@ int32_t sys_stat(const char *path, struct stat *buf)
 /* 向屏幕输出一个字符 */
 void sys_putchar(char char_asci)
 {
-    console_put_char(char_asci);
+    put_char_bga(char_asci);
 }
 
 /* 显示系统支持的内部命令 */

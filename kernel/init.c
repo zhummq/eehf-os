@@ -14,9 +14,10 @@
 #include "e1000.h"
 #include "memory.h"
 #include "net.h"
-#include "vga.h"
 #include "psf2.h"
 #include "font.h"
+#include "print-bga.h"
+#include "bga.h"
 
 /*负责初始化所有模块 */
 void init_all() {
@@ -33,13 +34,11 @@ void init_all() {
 	tss_init();       // tss初始化
 	syscall_init();   // 初始化系统调用
   pci_init();// pci_init
-  vga_init();
   e1000_init();
   net_init();
-	intr_enable();    // 后面的ide_init需要打开中断
+  bga_init();
+  intr_enable();    // 后面的ide_init需要打开中断
 	ide_init();     // 初始化硬盘
 	filesys_init();   // 初始化文件系统
   font_init();
-  draw_char(6,6,'b',0xffffffff,0x00000000);
-  //draw_char(5,5,'a',0x00000000,0xffffffff);
-  }
+}

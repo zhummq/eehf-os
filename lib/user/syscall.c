@@ -227,3 +227,7 @@ uint32_t get_ms(void){
 void* realloc(void *ptr, uint32_t size){
   return (void *)_syscall2(SYS_REALLOC,ptr,size);
 }
+void cursor(void)
+{
+  return _syscall0(SYS_CURSOR);
+}

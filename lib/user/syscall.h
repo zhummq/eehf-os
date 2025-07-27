@@ -38,7 +38,8 @@ enum SYSCALL_NR
     SYS_DRAW_PIEXL,
     SYS_MSLEEP,
     SYS_GET_MS,
-    SYS_REALLOC
+    SYS_REALLOC,
+    SYS_CURSOR
 };
 uint32_t getpid(void);
 uint32_t write(int32_t fd, const void *buf, uint32_t count);
@@ -73,4 +74,5 @@ void draw_piexl(uint32_t x,uint32_t y,uint32_t color);
 void msleep(uint32_t ms);
 uint32_t get_ms(void);
 void *realloc(void* ptr, uint32_t size);
+void cursor(void);
 #endif

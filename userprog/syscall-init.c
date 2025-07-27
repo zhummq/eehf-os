@@ -12,8 +12,9 @@
 #include "wait_exit.h"
 #include "pipe.h"
 #include "keyboard.h"
-#include "vga.h"
+#include "bga.h"
 #include "timer.h"
+#include "print-bga.h"
 
 #define syscall_nr 37
 typedef void *syscall;
@@ -62,5 +63,6 @@ void syscall_init(void)
     syscall_table[SYS_MSLEEP] = mtime_sleep;
     syscall_table[SYS_GET_MS] =get_ms_timer;
     syscall_table[SYS_REALLOC] = sys_realloc;
+    syscall_table[SYS_CURSOR] = sys_cursor; 
     put_str("syscall_init done\n");
 }

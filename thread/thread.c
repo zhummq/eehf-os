@@ -224,7 +224,6 @@ void thread_init(void)
     pid_pool_init();
 
     /* 先创建第一个用户进程:init */
-    process_execute(init, "init"); // 放在第一个初始化,这是第一个进程,init进程的pid为1
 
     /* 将当前main函数创建为线程 */
     make_main_thread();

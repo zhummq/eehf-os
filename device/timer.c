@@ -1,10 +1,13 @@
 #include "timer.h" 
 #include "io.h"
 #include "print.h"
+#include "print-bga.h"
 
 #include "interrupt.h"
 #include "thread.h"
 #include "debug.h"
+#include "string.h"
+#include "font.h"
 
 #define IRQ0_FREQUENCY	    100    //定义我们想要的中断发生频率，100HZ                         
 #define INPUT_FREQUENCY	    1193180     //计数器0的工作脉冲信号评率
@@ -18,6 +21,7 @@
 #define mil_seconds_per_intr (1000 / IRQ0_FREQUENCY)
 
 uint32_t ticks;          // ticks是内核自中断开启以来总共的嘀嗒数
+static bool is_shell;
 
 /* 把操作的计数器counter_no、读写锁属性rwl、计数器模式counter_mode写入模式控制寄存器并赋予初始值counter_value */
 static void frequency_set(uint8_t counter_port, \
@@ -49,6 +53,16 @@ static void intr_timer_handler(void) {
    else {				  // 将当前进程的时间片-1
       cur_thread->ticks--;
    }
+
+  if (ticks % 50 == 0)
+  {
+    if (Solarize_12x29_psf )
+    {
+      is_shell = 1;
+      sys_cursor();
+    }
+
+  }
 }
 
 

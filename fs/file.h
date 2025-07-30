@@ -1,39 +1,34 @@
 #ifndef __FS_FILE_H
 #define __FS_FILE_H
-#include "stdint.h"
-#include "inode.h"
 #include "dir.h"
-
+#include "inode.h"
+#include "stdint.h"
 
 #define MAX_FILE_OPEN 32 // 系统可打开的最大文件数
 typedef struct {
   uint32_t fd;
-}FILE;
+} FILE;
 extern FILE *stderr;
 /* 文件结构 */
-struct file
-{
-    uint32_t fd_pos; // 记录当前文件操作的偏移地址,以0为起始,最大为文件大小-1
-    uint32_t fd_flag;
-    uint32_t used;
-    struct inode *fd_inode;
+struct file {
+  uint32_t fd_pos; // 记录当前文件操作的偏移地址,以0为起始,最大为文件大小-1
+  uint32_t fd_flag;
+  uint32_t used;
+  struct inode *fd_inode;
 };
 
 /* 位图类型 */
-enum bitmap_type
-{
-    INODE_BITMAP, // inode位图
-    BLOCK_BITMAP  // 块位图
+enum bitmap_type {
+  INODE_BITMAP, // inode位图
+  BLOCK_BITMAP  // 块位图
 };
-
 
 /* 标准输入输出描述符 */
 enum std_fd {
-   stdin_no,   // 0 标准输入
-   stdout_no,  // 1 标准输出
-   stderr_no   // 2 标准错误
+  stdin_no,  // 0 标准输入
+  stdout_no, // 1 标准输出
+  stderr_no  // 2 标准错误
 };
-
 
 int32_t get_free_slot_in_global(void);
 int32_t pcb_fd_install(int32_t globa_fd_idx);

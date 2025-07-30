@@ -1,19 +1,22 @@
 #ifndef __LIB_STDIO_H
 #define __LIB_STDIO_H
-#include "stdint.h"
 #include "file.h"
-typedef char* va_list;
-uint32_t printf(const char* str, ...);
-uint32_t vsprintf(char* str, const char* format, va_list ap);
-uint32_t sprintf(char* buf, const char* format, ...);
+#include "stdint.h"
+typedef char *va_list;
+#define va_start(ap, v) ap = (va_list)((char *)&v + sizeof(v));
+#define va_arg(ap, t) (*(t *)((ap += sizeof(t)) - sizeof(t)))
+#define va_end(ap) ap = NULL // 清除ap
+uint32_t printf(const char *str, ...);
+uint32_t vsprintf(char *str, const char *format, va_list ap);
+uint32_t sprintf(char *buf, const char *format, ...);
 int snprintf(char *str, uint32_t size, const char *format, ...);
-int puts(const char* str);
+int puts(const char *str);
 int fprintf(FILE *stream, const char *format, ...);
-int fclose(FILE * file);
-FILE * fopen(const char *pathname, uint8_t flags);
-uint32_t fread(void* buff,uint32_t size,uint32_t nmemb,FILE * stream);
-uint32_t fwrite(void* buff,uint32_t size,uint32_t nmemb,FILE * stream);
-long ftell(FILE * stream);
+int fclose(FILE *file);
+FILE *fopen(const char *pathname, uint8_t flags);
+uint32_t fread(void *buff, uint32_t size, uint32_t nmemb, FILE *stream);
+uint32_t fwrite(void *buff, uint32_t size, uint32_t nmemb, FILE *stream);
+long ftell(FILE *stream);
 int remove(const char *filename);
 int fseek(FILE *stream, long offset, int whence);
 int rename(const char *oldpath, const char *newpath);

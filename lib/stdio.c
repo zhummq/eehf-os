@@ -1,5 +1,6 @@
 #include "stdio.h"
 #include "file.h"
+#include "fs.h"
 #include "global.h"
 #include "stdint.h"
 #include "string.h"
@@ -126,7 +127,13 @@ int fprintf(FILE *stream, const char *format, ...) {
   return write(stream->fd, buf, len);
 }
 
-FILE *fopen(const char *pathname, uint8_t flags) {
+FILE *fopen(const char *pathname, const char *mode) {
+  uint8_t flags = 0;
+  if (!strcmp(mode, "r") || !strcmp(mode, "rb")) {
+    flags = O_RDONLY;
+  } else if (!strcmp(mode, "r+")) {
+    flags = O_RDWR;
+  }
   FILE *file = (FILE *)malloc(sizeof(FILE));
   uint32_t fd = open(pathname, flags);
   file->fd = fd;

@@ -11,7 +11,7 @@ int snprintf(char *str, uint32_t size, const char *format, ...);
 int puts(const char *str);
 int fprintf(FILE *stream, const char *format, ...);
 int fclose(FILE *file);
-FILE *fopen(const char *pathname, uint8_t flags);
+FILE *fopen(const char *pathname, const char *mode);
 uint32_t fread(void *buff, uint32_t size, uint32_t nmemb, FILE *stream);
 uint32_t fwrite(void *buff, uint32_t size, uint32_t nmemb, FILE *stream);
 long ftell(FILE *stream);

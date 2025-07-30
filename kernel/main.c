@@ -37,7 +37,7 @@ int main(void) {
   }
   int32_t fd_doom = sys_open("/doom", O_CREAT | O_RDWR);
   if (fd_doom != -1) {
-    uint32_t file_size = 1665352;
+    uint32_t file_size = 1502208;
     uint32_t sec_cnt = DIV_ROUND_UP(file_size, 512);
     struct disk *sda = &ide_channels[0].devices[0];
     void *prog_buf = sys_malloc(file_size);

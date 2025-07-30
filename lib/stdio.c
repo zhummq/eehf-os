@@ -6,6 +6,8 @@
 #include "syscall.h"
 #include <stdint.h>
 
+int errno = 0;
+
 /* 将整型转换成字符(integer to ascii) */
 static uint32_t itoa(uint32_t value, char **buf_ptr_addr, uint8_t base) {
   uint32_t num = 0;

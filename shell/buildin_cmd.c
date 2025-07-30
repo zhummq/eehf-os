@@ -111,13 +111,13 @@ void buildin_ls(uint32_t argc, char **argv) {
   char *pathname = NULL;
   struct stat file_stat;
   memset(&file_stat, 0, sizeof(struct stat));
-  bool long_info = false;
+  bool long_info = FALSE;
   uint32_t arg_path_nr = 0;
   uint32_t arg_idx = 1; // 跨过argv[0],argv[0]是字符串“ls”
   while (arg_idx < argc) {
     if (argv[arg_idx][0] == '-') {        // 如果是选项,单词的首字符是-
       if (!strcmp("-l", argv[arg_idx])) { // 如果是参数-l
-        long_info = true;
+        long_info = TRUE;
       } else if (!strcmp("-h", argv[arg_idx])) { // 参数-h
         printf("usage: -l list all infomation about the file.\n-h for "
                "help\nlist all files in the current dirctory if no option\n");

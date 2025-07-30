@@ -38,12 +38,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/main.o",
+      "build/kernel/main.o",
       "kernel/main.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/kernel/main.c",
-    "output": "/home/zhuqingsen/eehf-os/build/main.o"
+    "output": "/home/zhuqingsen/eehf-os/build/kernel/main.o"
   },
   {
     "arguments": [
@@ -84,12 +84,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/init.o",
+      "build/kernel/init.o",
       "kernel/init.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/kernel/init.c",
-    "output": "/home/zhuqingsen/eehf-os/build/init.o"
+    "output": "/home/zhuqingsen/eehf-os/build/kernel/init.o"
   },
   {
     "arguments": [
@@ -130,12 +130,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/interrupt.o",
+      "build/kernel/interrupt.o",
       "kernel/interrupt.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/kernel/interrupt.c",
-    "output": "/home/zhuqingsen/eehf-os/build/interrupt.o"
+    "output": "/home/zhuqingsen/eehf-os/build/kernel/interrupt.o"
   },
   {
     "arguments": [
@@ -176,12 +176,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/timer.o",
+      "build/device/timer.o",
       "device/timer.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/device/timer.c",
-    "output": "/home/zhuqingsen/eehf-os/build/timer.o"
+    "output": "/home/zhuqingsen/eehf-os/build/device/timer.o"
   },
   {
     "arguments": [
@@ -222,12 +222,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/debug.o",
+      "build/kernel/debug.o",
       "kernel/debug.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/kernel/debug.c",
-    "output": "/home/zhuqingsen/eehf-os/build/debug.o"
+    "output": "/home/zhuqingsen/eehf-os/build/kernel/debug.o"
   },
   {
     "arguments": [
@@ -268,12 +268,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/string.o",
+      "build/lib/string.o",
       "lib/string.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/lib/string.c",
-    "output": "/home/zhuqingsen/eehf-os/build/string.o"
+    "output": "/home/zhuqingsen/eehf-os/build/lib/string.o"
   },
   {
     "arguments": [
@@ -314,12 +314,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/bitmap.o",
+      "build/lib/kernel/bitmap.o",
       "lib/kernel/bitmap.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/lib/kernel/bitmap.c",
-    "output": "/home/zhuqingsen/eehf-os/build/bitmap.o"
+    "output": "/home/zhuqingsen/eehf-os/build/lib/kernel/bitmap.o"
   },
   {
     "arguments": [
@@ -360,12 +360,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/memory.o",
+      "build/kernel/memory.o",
       "kernel/memory.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/kernel/memory.c",
-    "output": "/home/zhuqingsen/eehf-os/build/memory.o"
+    "output": "/home/zhuqingsen/eehf-os/build/kernel/memory.o"
   },
   {
     "arguments": [
@@ -406,12 +406,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/thread.o",
+      "build/thread/thread.o",
       "thread/thread.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/thread/thread.c",
-    "output": "/home/zhuqingsen/eehf-os/build/thread.o"
+    "output": "/home/zhuqingsen/eehf-os/build/thread/thread.o"
   },
   {
     "arguments": [
@@ -452,12 +452,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/list.o",
+      "build/lib/kernel/list.o",
       "lib/kernel/list.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/lib/kernel/list.c",
-    "output": "/home/zhuqingsen/eehf-os/build/list.o"
+    "output": "/home/zhuqingsen/eehf-os/build/lib/kernel/list.o"
   },
   {
     "arguments": [
@@ -498,12 +498,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/sync.o",
+      "build/thread/sync.o",
       "thread/sync.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/thread/sync.c",
-    "output": "/home/zhuqingsen/eehf-os/build/sync.o"
+    "output": "/home/zhuqingsen/eehf-os/build/thread/sync.o"
   },
   {
     "arguments": [
@@ -544,12 +544,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/console.o",
+      "build/device/console.o",
       "device/console.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/device/console.c",
-    "output": "/home/zhuqingsen/eehf-os/build/console.o"
+    "output": "/home/zhuqingsen/eehf-os/build/device/console.o"
   },
   {
     "arguments": [
@@ -590,12 +590,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/keyboard.o",
+      "build/device/keyboard.o",
       "device/keyboard.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/device/keyboard.c",
-    "output": "/home/zhuqingsen/eehf-os/build/keyboard.o"
+    "output": "/home/zhuqingsen/eehf-os/build/device/keyboard.o"
   },
   {
     "arguments": [
@@ -636,12 +636,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/ioqueue.o",
+      "build/device/ioqueue.o",
       "device/ioqueue.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/device/ioqueue.c",
-    "output": "/home/zhuqingsen/eehf-os/build/ioqueue.o"
+    "output": "/home/zhuqingsen/eehf-os/build/device/ioqueue.o"
   },
   {
     "arguments": [
@@ -682,12 +682,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/tss.o",
+      "build/userprog/tss.o",
       "userprog/tss.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/userprog/tss.c",
-    "output": "/home/zhuqingsen/eehf-os/build/tss.o"
+    "output": "/home/zhuqingsen/eehf-os/build/userprog/tss.o"
   },
   {
     "arguments": [
@@ -728,12 +728,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/process.o",
+      "build/userprog/process.o",
       "userprog/process.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/userprog/process.c",
-    "output": "/home/zhuqingsen/eehf-os/build/process.o"
+    "output": "/home/zhuqingsen/eehf-os/build/userprog/process.o"
   },
   {
     "arguments": [
@@ -774,12 +774,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/syscall.o",
+      "build/lib/user/syscall.o",
       "lib/user/syscall.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/lib/user/syscall.c",
-    "output": "/home/zhuqingsen/eehf-os/build/syscall.o"
+    "output": "/home/zhuqingsen/eehf-os/build/lib/user/syscall.o"
   },
   {
     "arguments": [
@@ -820,12 +820,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/syscall-init.o",
+      "build/userprog/syscall-init.o",
       "userprog/syscall-init.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/userprog/syscall-init.c",
-    "output": "/home/zhuqingsen/eehf-os/build/syscall-init.o"
+    "output": "/home/zhuqingsen/eehf-os/build/userprog/syscall-init.o"
   },
   {
     "arguments": [
@@ -866,12 +866,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/stdio.o",
+      "build/lib/stdio.o",
       "lib/stdio.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/lib/stdio.c",
-    "output": "/home/zhuqingsen/eehf-os/build/stdio.o"
+    "output": "/home/zhuqingsen/eehf-os/build/lib/stdio.o"
   },
   {
     "arguments": [
@@ -912,12 +912,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/stdio-kernel.o",
+      "build/lib/kernel/stdio-kernel.o",
       "lib/kernel/stdio-kernel.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/lib/kernel/stdio-kernel.c",
-    "output": "/home/zhuqingsen/eehf-os/build/stdio-kernel.o"
+    "output": "/home/zhuqingsen/eehf-os/build/lib/kernel/stdio-kernel.o"
   },
   {
     "arguments": [
@@ -958,12 +958,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/ide.o",
+      "build/device/ide.o",
       "device/ide.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/device/ide.c",
-    "output": "/home/zhuqingsen/eehf-os/build/ide.o"
+    "output": "/home/zhuqingsen/eehf-os/build/device/ide.o"
   },
   {
     "arguments": [
@@ -1004,12 +1004,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/fs.o",
+      "build/fs/fs.o",
       "fs/fs.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/fs/fs.c",
-    "output": "/home/zhuqingsen/eehf-os/build/fs.o"
+    "output": "/home/zhuqingsen/eehf-os/build/fs/fs.o"
   },
   {
     "arguments": [
@@ -1050,12 +1050,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/inode.o",
+      "build/fs/inode.o",
       "fs/inode.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/fs/inode.c",
-    "output": "/home/zhuqingsen/eehf-os/build/inode.o"
+    "output": "/home/zhuqingsen/eehf-os/build/fs/inode.o"
   },
   {
     "arguments": [
@@ -1096,12 +1096,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/file.o",
+      "build/fs/file.o",
       "fs/file.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/fs/file.c",
-    "output": "/home/zhuqingsen/eehf-os/build/file.o"
+    "output": "/home/zhuqingsen/eehf-os/build/fs/file.o"
   },
   {
     "arguments": [
@@ -1142,12 +1142,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/dir.o",
+      "build/fs/dir.o",
       "fs/dir.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/fs/dir.c",
-    "output": "/home/zhuqingsen/eehf-os/build/dir.o"
+    "output": "/home/zhuqingsen/eehf-os/build/fs/dir.o"
   },
   {
     "arguments": [
@@ -1188,12 +1188,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/fork.o",
+      "build/userprog/fork.o",
       "userprog/fork.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/userprog/fork.c",
-    "output": "/home/zhuqingsen/eehf-os/build/fork.o"
+    "output": "/home/zhuqingsen/eehf-os/build/userprog/fork.o"
   },
   {
     "arguments": [
@@ -1234,12 +1234,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/shell.o",
+      "build/shell/shell.o",
       "shell/shell.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/shell/shell.c",
-    "output": "/home/zhuqingsen/eehf-os/build/shell.o"
+    "output": "/home/zhuqingsen/eehf-os/build/shell/shell.o"
   },
   {
     "arguments": [
@@ -1280,12 +1280,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/buildin_cmd.o",
+      "build/shell/buildin_cmd.o",
       "shell/buildin_cmd.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/shell/buildin_cmd.c",
-    "output": "/home/zhuqingsen/eehf-os/build/buildin_cmd.o"
+    "output": "/home/zhuqingsen/eehf-os/build/shell/buildin_cmd.o"
   },
   {
     "arguments": [
@@ -1326,12 +1326,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/exec.o",
+      "build/userprog/exec.o",
       "userprog/exec.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/userprog/exec.c",
-    "output": "/home/zhuqingsen/eehf-os/build/exec.o"
+    "output": "/home/zhuqingsen/eehf-os/build/userprog/exec.o"
   },
   {
     "arguments": [
@@ -1372,12 +1372,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/assert.o",
+      "build/lib/user/assert.o",
       "lib/user/assert.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/lib/user/assert.c",
-    "output": "/home/zhuqingsen/eehf-os/build/assert.o"
+    "output": "/home/zhuqingsen/eehf-os/build/lib/user/assert.o"
   },
   {
     "arguments": [
@@ -1418,12 +1418,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/wait_exit.o",
+      "build/userprog/wait_exit.o",
       "userprog/wait_exit.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/userprog/wait_exit.c",
-    "output": "/home/zhuqingsen/eehf-os/build/wait_exit.o"
+    "output": "/home/zhuqingsen/eehf-os/build/userprog/wait_exit.o"
   },
   {
     "arguments": [
@@ -1464,12 +1464,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/pipe.o",
+      "build/shell/pipe.o",
       "shell/pipe.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/shell/pipe.c",
-    "output": "/home/zhuqingsen/eehf-os/build/pipe.o"
+    "output": "/home/zhuqingsen/eehf-os/build/shell/pipe.o"
   },
   {
     "arguments": [
@@ -1510,12 +1510,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/pci.o",
+      "build/device/pci.o",
       "device/pci.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/device/pci.c",
-    "output": "/home/zhuqingsen/eehf-os/build/pci.o"
+    "output": "/home/zhuqingsen/eehf-os/build/device/pci.o"
   },
   {
     "arguments": [
@@ -1556,12 +1556,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/e1000.o",
+      "build/device/net/e1000.o",
       "device/net/e1000.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/device/net/e1000.c",
-    "output": "/home/zhuqingsen/eehf-os/build/e1000.o"
+    "output": "/home/zhuqingsen/eehf-os/build/device/net/e1000.o"
   },
   {
     "arguments": [
@@ -1602,12 +1602,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/net.o",
+      "build/net/net.o",
       "net/net.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/net/net.c",
-    "output": "/home/zhuqingsen/eehf-os/build/net.o"
+    "output": "/home/zhuqingsen/eehf-os/build/net/net.o"
   },
   {
     "arguments": [
@@ -1648,12 +1648,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/eth.o",
+      "build/net/eth.o",
       "net/eth.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/net/eth.c",
-    "output": "/home/zhuqingsen/eehf-os/build/eth.o"
+    "output": "/home/zhuqingsen/eehf-os/build/net/eth.o"
   },
   {
     "arguments": [
@@ -1694,12 +1694,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/arp.o",
+      "build/net/arp.o",
       "net/arp.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/net/arp.c",
-    "output": "/home/zhuqingsen/eehf-os/build/arp.o"
+    "output": "/home/zhuqingsen/eehf-os/build/net/arp.o"
   },
   {
     "arguments": [
@@ -1740,12 +1740,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/dhcp.o",
+      "build/net/dhcp.o",
       "net/dhcp.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/net/dhcp.c",
-    "output": "/home/zhuqingsen/eehf-os/build/dhcp.o"
+    "output": "/home/zhuqingsen/eehf-os/build/net/dhcp.o"
   },
   {
     "arguments": [
@@ -1786,12 +1786,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/ipv4.o",
+      "build/net/ipv4.o",
       "net/ipv4.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/net/ipv4.c",
-    "output": "/home/zhuqingsen/eehf-os/build/ipv4.o"
+    "output": "/home/zhuqingsen/eehf-os/build/net/ipv4.o"
   },
   {
     "arguments": [
@@ -1832,12 +1832,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/socket.o",
+      "build/net/socket.o",
       "net/socket.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/net/socket.c",
-    "output": "/home/zhuqingsen/eehf-os/build/socket.o"
+    "output": "/home/zhuqingsen/eehf-os/build/net/socket.o"
   },
   {
     "arguments": [
@@ -1878,12 +1878,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/udp.o",
+      "build/net/udp.o",
       "net/udp.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/net/udp.c",
-    "output": "/home/zhuqingsen/eehf-os/build/udp.o"
+    "output": "/home/zhuqingsen/eehf-os/build/net/udp.o"
   },
   {
     "arguments": [
@@ -1924,12 +1924,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/icmp.o",
+      "build/net/icmp.o",
       "net/icmp.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/net/icmp.c",
-    "output": "/home/zhuqingsen/eehf-os/build/icmp.o"
+    "output": "/home/zhuqingsen/eehf-os/build/net/icmp.o"
   },
   {
     "arguments": [
@@ -1970,12 +1970,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/font.o",
+      "build/tool/font.o",
       "tool/font.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/tool/font.c",
-    "output": "/home/zhuqingsen/eehf-os/build/font.o"
+    "output": "/home/zhuqingsen/eehf-os/build/tool/font.o"
   },
   {
     "arguments": [
@@ -2016,12 +2016,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/bga.o",
+      "build/device/bga/bga.o",
       "device/bga/bga.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/device/bga/bga.c",
-    "output": "/home/zhuqingsen/eehf-os/build/bga.o"
+    "output": "/home/zhuqingsen/eehf-os/build/device/bga/bga.o"
   },
   {
     "arguments": [
@@ -2062,12 +2062,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/psf2.o",
+      "build/tool/psf2.o",
       "tool/psf2.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/tool/psf2.c",
-    "output": "/home/zhuqingsen/eehf-os/build/psf2.o"
+    "output": "/home/zhuqingsen/eehf-os/build/tool/psf2.o"
   },
   {
     "arguments": [
@@ -2108,12 +2108,12 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/math.o",
+      "build/math/math.o",
       "math/math.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/math/math.c",
-    "output": "/home/zhuqingsen/eehf-os/build/math.o"
+    "output": "/home/zhuqingsen/eehf-os/build/math/math.o"
   },
   {
     "arguments": [
@@ -2154,11 +2154,103 @@
       "-fno-stack-protector",
       "-g",
       "-o",
-      "build/print-bga.o",
+      "build/lib/kernel/print-bga.o",
       "lib/kernel/print-bga.c"
     ],
     "directory": "/home/zhuqingsen/eehf-os",
     "file": "/home/zhuqingsen/eehf-os/lib/kernel/print-bga.c",
-    "output": "/home/zhuqingsen/eehf-os/build/print-bga.o"
+    "output": "/home/zhuqingsen/eehf-os/build/lib/kernel/print-bga.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-I",
+      "tool/",
+      "-I",
+      "device/bga/",
+      "-I",
+      "net/",
+      "-I",
+      "device/net",
+      "-I",
+      "lib/",
+      "-I",
+      "lib/kernel/",
+      "-I",
+      "lib/user/",
+      "-I",
+      "kernel/",
+      "-I",
+      "device/",
+      "-I",
+      "thread/",
+      "-I",
+      "userprog/",
+      "-I",
+      "fs/",
+      "-I",
+      "shell/",
+      "-c",
+      "-fno-builtin",
+      "-W",
+      "-Wstrict-prototypes",
+      "-Wmissing-prototypes",
+      "-m32",
+      "-fno-stack-protector",
+      "-g",
+      "-o",
+      "build/lib/strings.o",
+      "lib/strings.c"
+    ],
+    "directory": "/home/zhuqingsen/eehf-os",
+    "file": "/home/zhuqingsen/eehf-os/lib/strings.c",
+    "output": "/home/zhuqingsen/eehf-os/build/lib/strings.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-I",
+      "tool/",
+      "-I",
+      "device/bga/",
+      "-I",
+      "net/",
+      "-I",
+      "device/net",
+      "-I",
+      "lib/",
+      "-I",
+      "lib/kernel/",
+      "-I",
+      "lib/user/",
+      "-I",
+      "kernel/",
+      "-I",
+      "device/",
+      "-I",
+      "thread/",
+      "-I",
+      "userprog/",
+      "-I",
+      "fs/",
+      "-I",
+      "shell/",
+      "-c",
+      "-fno-builtin",
+      "-W",
+      "-Wstrict-prototypes",
+      "-Wmissing-prototypes",
+      "-m32",
+      "-fno-stack-protector",
+      "-g",
+      "-o",
+      "build/lib/ctype.o",
+      "lib/ctype.c"
+    ],
+    "directory": "/home/zhuqingsen/eehf-os",
+    "file": "/home/zhuqingsen/eehf-os/lib/ctype.c",
+    "output": "/home/zhuqingsen/eehf-os/build/lib/ctype.o"
   }
 ]

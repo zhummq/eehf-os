@@ -17,18 +17,19 @@ LDFLAGS= -Ttext $(ENTRY_POINT) -e main -Map $(BUILD_DIR)/kernel.map -m elf_i386
 #-Map,生成map文件，就是通过编译器编译之后，生成的程序、数据及IO空间信息的一种映射文件
 #里面包含函数大小，入口地址等一些重要信息
 
-OBJS=$(BUILD_DIR)/main.o $(BUILD_DIR)/init.o \
-	$(BUILD_DIR)/interrupt.o $(BUILD_DIR)/timer.o $(BUILD_DIR)/kernel.o \
-	$(BUILD_DIR)/print.o $(BUILD_DIR)/debug.o $(BUILD_DIR)/string.o $(BUILD_DIR)/bitmap.o \
-	$(BUILD_DIR)/memory.o $(BUILD_DIR)/thread.o	$(BUILD_DIR)/list.o	$(BUILD_DIR)/switch.o \
-	$(BUILD_DIR)/sync.o	$(BUILD_DIR)/console.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/ioqueue.o \
-	$(BUILD_DIR)/tss.o	$(BUILD_DIR)/process.o	$(BUILD_DIR)/syscall.o $(BUILD_DIR)/syscall-init.o \
-	$(BUILD_DIR)/stdio.o $(BUILD_DIR)/stdio-kernel.o $(BUILD_DIR)/ide.o $(BUILD_DIR)/fs.o $(BUILD_DIR)/inode.o \
-	$(BUILD_DIR)/file.o $(BUILD_DIR)/dir.o $(BUILD_DIR)/fork.o	$(BUILD_DIR)/shell.o $(BUILD_DIR)/buildin_cmd.o \
-	$(BUILD_DIR)/exec.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/wait_exit.o $(BUILD_DIR)/pipe.o\
-$(BUILD_DIR)/pci.o $(BUILD_DIR)/e1000.o $(BUILD_DIR)/net.o $(BUILD_DIR)/eth.o $(BUILD_DIR)/arp.o\
-$(BUILD_DIR)/dhcp.o $(BUILD_DIR)/ipv4.o $(BUILD_DIR)/socket.o $(BUILD_DIR)/udp.o $(BUILD_DIR)/icmp.o\
-$(BUILD_DIR)/font.o $(BUILD_DIR)/bga.o $(BUILD_DIR)/psf2.o $(BUILD_DIR)/math.o $(BUILD_DIR)/print-bga.o
+OBJS=$(BUILD_DIR)/kernel/main.o $(BUILD_DIR)/kernel/init.o \
+	$(BUILD_DIR)/kernel/interrupt.o $(BUILD_DIR)/device/timer.o $(BUILD_DIR)/kernel.o \
+	$(BUILD_DIR)/print.o $(BUILD_DIR)/kernel/debug.o $(BUILD_DIR)/lib/string.o $(BUILD_DIR)/lib/kernel/bitmap.o \
+	$(BUILD_DIR)/kernel/memory.o $(BUILD_DIR)/thread/thread.o $(BUILD_DIR)/lib/kernel/list.o	$(BUILD_DIR)/switch.o \
+	$(BUILD_DIR)/thread/sync.o	$(BUILD_DIR)/device/console.o $(BUILD_DIR)/device/keyboard.o $(BUILD_DIR)/device/ioqueue.o \
+	$(BUILD_DIR)/userprog/tss.o	$(BUILD_DIR)/userprog/process.o	$(BUILD_DIR)/lib/user/syscall.o $(BUILD_DIR)/userprog/syscall-init.o \
+	$(BUILD_DIR)/lib/stdio.o $(BUILD_DIR)/lib/kernel/stdio-kernel.o $(BUILD_DIR)/device/ide.o $(BUILD_DIR)/fs/fs.o $(BUILD_DIR)/fs/inode.o \
+	$(BUILD_DIR)/fs/file.o $(BUILD_DIR)/fs/dir.o $(BUILD_DIR)/userprog/fork.o	$(BUILD_DIR)/shell/shell.o $(BUILD_DIR)/shell/buildin_cmd.o \
+	$(BUILD_DIR)/userprog/exec.o $(BUILD_DIR)/lib/user/assert.o $(BUILD_DIR)/userprog/wait_exit.o $(BUILD_DIR)/shell/pipe.o\
+$(BUILD_DIR)/device/pci.o $(BUILD_DIR)/device/net/e1000.o $(BUILD_DIR)/net/net.o $(BUILD_DIR)/net/eth.o $(BUILD_DIR)/net/arp.o\
+$(BUILD_DIR)/net/dhcp.o $(BUILD_DIR)/net/ipv4.o $(BUILD_DIR)/net/socket.o $(BUILD_DIR)/net/udp.o $(BUILD_DIR)/net/icmp.o\
+$(BUILD_DIR)/tool/font.o $(BUILD_DIR)/device/bga/bga.o $(BUILD_DIR)/tool/psf2.o $(BUILD_DIR)/math/math.o $(BUILD_DIR)/lib/kernel/print-bga.o \
+$(BUILD_DIR)/lib/strings.o $(BUILD_DIR)/lib/ctype.o
 #顺序最好是调用在前，实现在后
 
 ######################编译两个启动文件的代码#####################################
@@ -40,134 +41,9 @@ $(BUILD_DIR)/loader.o:boot/loader.S
 	$(AS) -I boot/include/ -o build/loader.o boot/loader.S
 	
 ######################编译C内核代码###################################################
-$(BUILD_DIR)/main.o:kernel/main.c
-	$(CC) $(CFLAGS) -o $@ $<	
-# $@表示规则中目标文件名的集合这里就是$(BUILD_DIR)/main.o  $<表示规则中依赖文件的第一个，这里就是kernle/main.c 
-
-$(BUILD_DIR)/init.o:kernel/init.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/interrupt.o:kernel/interrupt.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/timer.o:device/timer.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/debug.o:kernel/debug.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/string.o:lib/string.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/bitmap.o:lib/kernel/bitmap.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/memory.o:kernel/memory.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/thread.o:thread/thread.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/list.o:lib/kernel/list.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/sync.o:thread/sync.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/console.o:device/console.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/keyboard.o:device/keyboard.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/ioqueue.o:device/ioqueue.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/tss.o:userprog/tss.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/process.o:userprog/process.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/syscall.o:lib/user/syscall.c
-	$(CC) $(CFLAGS) -o $@ $<
-$(BUILD_DIR)/syscall-init.o:userprog/syscall-init.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/stdio.o:lib/stdio.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/stdio-kernel.o:lib/kernel/stdio-kernel.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/ide.o:device/ide.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/fs.o:fs/fs.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/inode.o:fs/inode.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/file.o:fs/file.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/dir.o:fs/dir.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/fork.o:userprog/fork.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/shell.o:shell/shell.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/buildin_cmd.o:shell/buildin_cmd.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/exec.o:userprog/exec.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/assert.o:lib/user/assert.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/wait_exit.o:userprog/wait_exit.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/pipe.o:shell/pipe.c
-	$(CC) $(CFLAGS) -o $@ $<
-$(BUILD_DIR)/pci.o:device/pci.c
-	$(CC) $(CFLAGS) -o $@ $<
-$(BUILD_DIR)/e1000.o:device/net/e1000.c
-	$(CC) $(CFLAGS) -o $@ $<
-$(BUILD_DIR)/net.o:net/net.c
-	$(CC) $(CFLAGS) -o $@ $<
-$(BUILD_DIR)/eth.o:net/eth.c
-	$(CC) $(CFLAGS) -o $@ $<
-$(BUILD_DIR)/arp.o:net/arp.c
-	$(CC) $(CFLAGS) -o $@ $<
-$(BUILD_DIR)/dhcp.o:net/dhcp.c
-	$(CC) $(CFLAGS) -o $@ $<
-$(BUILD_DIR)/ipv4.o:net/ipv4.c
-	$(CC) $(CFLAGS) -o $@ $<
-$(BUILD_DIR)/socket.o:net/socket.c
-	$(CC) $(CFLAGS) -o $@ $<
-$(BUILD_DIR)/udp.o:net/udp.c
-	$(CC) $(CFLAGS) -o $@ $<
-$(BUILD_DIR)/icmp.o:net/icmp.c
-	$(CC) $(CFLAGS) -o $@ $<
-$(BUILD_DIR)/font.o:tool/font.c
-	$(CC) $(CFLAGS) -o $@ $<
-$(BUILD_DIR)/bga.o:device/bga/bga.c
-	$(CC) $(CFLAGS) -o $@ $<
-$(BUILD_DIR)/psf2.o:tool/psf2.c
-	$(CC) $(CFLAGS) -o $@ $<
-$(BUILD_DIR)/math.o:math/math.c
-	$(CC) $(CFLAGS) -o $@ $<
-$(BUILD_DIR)/print-bga.o:lib/kernel/print-bga.c
-	$(CC) $(CFLAGS) -o $@ $<
-
-
-
+$(BUILD_DIR)/%.o: %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $< -o $@
 ###################编译汇编内核代码#####################################################
 $(BUILD_DIR)/kernel.o:kernel/kernel.S 
 	$(AS) $(ASFLAGS) -o $@ $<
@@ -194,7 +70,7 @@ hd:
 	dd if=$(BUILD_DIR)/kernel.elf of=$(HD60M_PATH) bs=512 count=700 seek=9 conv=notrunc
 	
 clean:
-	@cd $(BUILD_DIR) && rm -f ./* && echo "remove ./build all done"
+	@cd $(BUILD_DIR) && rm -rf ./* && echo "remove ./build all done"
 #-f, --force忽略不存在的文件，从不给出提示，执行make clean就会删除build下所有文件
 
 build:$(BUILD_DIR)/kernel.bin

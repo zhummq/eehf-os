@@ -23,7 +23,7 @@ int main(void) {
   if (fd != -1) {
     uint32_t file_size = 29728;
     uint32_t sec_cnt = DIV_ROUND_UP(file_size, 512);
-    struct disk *sda = &channels[0].devices[0];
+    struct disk *sda = &ide_channels[0].devices[0];
     void *prog_buf = sys_malloc(file_size);
     ide_read(sda, 500, prog_buf, sec_cnt);
 
@@ -39,7 +39,7 @@ int main(void) {
   if (fd_doom != -1) {
     uint32_t file_size = 1665352;
     uint32_t sec_cnt = DIV_ROUND_UP(file_size, 512);
-    struct disk *sda = &channels[0].devices[0];
+    struct disk *sda = &ide_channels[0].devices[0];
     void *prog_buf = sys_malloc(file_size);
     ide_read(sda, 800, prog_buf, sec_cnt);
 
@@ -55,7 +55,7 @@ int main(void) {
   if (fd_doom != -1) {
     uint32_t file_size = 4196021;
     uint32_t sec_cnt = DIV_ROUND_UP(file_size, 512);
-    struct disk *sda = &channels[0].devices[0];
+    struct disk *sda = &ide_channels[0].devices[0];
     void *prog_buf = sys_malloc(file_size);
     ide_read(sda, 5000, prog_buf, sec_cnt);
 
@@ -77,7 +77,7 @@ int main(void) {
 
   process_execute(init,
                   "init"); // 放在第一个初始化,这是第一个进程,init进程的pid为1
-  thread_exit(running_thread(), true);
+  thread_exit(running_thread(), TRUE);
   return 0;
 }
 

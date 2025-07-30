@@ -74,9 +74,9 @@ static bool mount_partition(struct list_elem *pelem, int arg) {
     /* 此处返回true是为了迎合主调函数list_traversal的实现,与函数本身功能无关。
         只有返回true时list_traversal才会停止遍历,减少了后面元素无意义的遍历.*/
     sys_free(sb_buf);
-    return true;
+    return TRUE;
   }
-  return false; // 使list_traversal继续遍历
+  return FALSE; // 使list_traversal继续遍历
 }
 
 /* 格式化分区,也就是初始化分区的元信息,创建文件系统 */
@@ -250,7 +250,7 @@ void filesys_init() {
         dev_no++;
         continue;
       }
-      struct disk *hd = &channels[channel_no].devices[dev_no];
+      struct disk *hd = &ide_channels[channel_no].devices[dev_no];
       struct partition *part = hd->prim_parts;
       while (part_idx < 12) { // 遍历硬盘的分区，4个主分区+8个逻辑
         if (part_idx == 4) {  // 开始处理逻辑分区
@@ -424,7 +424,7 @@ int32_t sys_open(const char *pathname, uint8_t flags) {
 
   /* 先检查文件是否存在 */
   int inode_no = search_file(pathname, &searched_record);
-  bool found = inode_no != -1 ? true : false;
+  bool found = inode_no != -1 ? TRUE : FALSE;
 
   if (searched_record.file_type == FT_DIRECTORY) {
     printk("can`t open a direcotry with open(), use opendir() to instead\n");

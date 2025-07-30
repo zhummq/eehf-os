@@ -76,14 +76,14 @@ clean:
 build:$(BUILD_DIR)/kernel.bin
 #执行build需要依赖kernel.bin，但是一开始没有，就会递归执行之前写好的语句编译kernel.bin
 qemu:
-	sudo qemu-system-i386 -cpu pentium -drive file=hd3M.img,media=disk,index=0,format=raw\
+	sudo qemu-system-i386 -cpu pentium2 -drive file=hd3M.img,media=disk,index=0,format=raw\
 		-drive file=hd80M.img,media=disk,index=1,format=raw\
 		-no-reboot -no-shutdown\
 		-netdev tap,id=net0,ifname=tap0,script=no,downscript=no\
 		-device e1000,netdev=net0,mac=00:FF:26:E4:55:94\
 		-vga std
 qemu-gdb:
-	sudo qemu-system-i386 -cpu pentium -drive file=hd3M.img,media=disk,index=0,format=raw\
+	sudo qemu-system-i386 -cpu pentium2 -drive file=hd3M.img,media=disk,index=0,format=raw\
 		-drive file=hd80M.img,media=disk,index=1,format=raw\
 		-no-reboot -no-shutdown -s -S\
     -netdev tap,id=net0,ifname=tap0,script=no,downscript=no\

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 DOOM_BIN="$HOME/doomgeneric/doomgeneric/doomgeneric"
-#DOOM_WAD="$HOME/eehf-os/doom1.wad"
-#FONT_PSF="$HOME/eehf-os/Solarize.12x29.psf"
+DOOM_WAD="$HOME/eehf-os/doom1.wad"
+FONT_PSF="$HOME/eehf-os/Solarize.12x29.psf"
 DD_OUT="$HOME/eehf-os/hd3M.img"
 
 SEC_CNT=$(ls -l $DOOM_BIN | awk '{printf("%d", ($5+511)/512)}')

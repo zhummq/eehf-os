@@ -15,15 +15,14 @@ static uint32_t itoa(uint32_t value, char **buf_ptr_addr, uint8_t base) {
   uint32_t m = value % base; // 求模,最先掉下来的是最低位
   uint32_t i = value / base; // 取整
   if (i) {                   // 如果倍数不为0则递归调用。
-    itoa(i, buf_ptr_addr, base);
+    num += itoa(i, buf_ptr_addr, base);
   }
-  if (m < 10) {                     // 如果余数是0~9
-    *((*buf_ptr_addr)++) = m + '0'; // 将数字0~9转换为字符'0'~'9'
-    num++;
+  if (m < 10) {                          // 如果余数是0~9
+    *((*buf_ptr_addr)++) = m + '0';      // 将数字0~9转换为字符'0'~'9'
   } else {                               // 否则余数是A~F
     *((*buf_ptr_addr)++) = m - 10 + 'A'; // 将数字A~F转换为字符'A'~'F'
-    num++;
   }
+  num++;
   return num;
 }
 
@@ -98,7 +97,8 @@ int snprintf(char *str, uint32_t size, const char *format, ...) {
   int written;
 
   va_start(args, format);
-  written = vsprintf(str, format, args); // 用已有的 vsprintf（或 sprintf）
+  written =
+      vsnprintf(str, size, format, args); // 用已有的 vsprintf（或 sprintf）
   va_end(args);
 
   // 如果写入内容超过了 size，则进行截断
@@ -171,6 +171,9 @@ int vsnprintf(char *str, uint32_t size, const char *format, va_list ap) {
   int32_t arg_int;
   char *arg_str;
   uint32_t written = 0;
+  char buf[32];
+  int32_t cnt = 0;
+  int32_t cnt_d = 0;
   while (index_char && written + 1 < size) {
     if (index_char != '%') {
       written++;
@@ -186,11 +189,11 @@ int vsnprintf(char *str, uint32_t size, const char *format, va_list ap) {
     case 's':
       arg_str = va_arg(ap, char *);
       written += strlen(arg_str);
+      strcpy(buf_ptr, arg_str);
+      buf_ptr += strlen(arg_str);
       if (written + 1 >= size) {
         break;
       }
-      strcpy(buf_ptr, arg_str);
-      buf_ptr += strlen(arg_str);
       index_char = *(++index_ptr);
       break;
     case 'c':
@@ -227,6 +230,31 @@ int vsnprintf(char *str, uint32_t size, const char *format, va_list ap) {
         break;
       }
       index_char = *(++index_ptr); // 跳过格式字符并更新index_char
+      break;
+    case '.':
+      buf[0] = *(++index_ptr);
+      buf[1] = '\0';
+      cnt = atoi(buf);
+      index_char = *(++index_ptr);
+      arg_int = va_arg(ap, int);
+      if (arg_int < 0) {
+        arg_int =
+            0 - arg_int; /* 若是负数, 将其转为正数后,再正数前面输出个负号'-'. */
+        written++;
+        if (written + 1 >= size) {
+          break;
+        }
+        *buf_ptr++ = '-';
+      }
+      cnt_d += itoa(arg_int, &buf_ptr, 10);
+      memcpy(buf, buf_ptr - cnt_d, cnt_d);
+      memset(buf_ptr - cnt_d, '0', cnt - cnt_d);
+      memcpy(buf_ptr + cnt - 2 * cnt_d, buf, cnt_d);
+      index_char = *(++index_ptr);
+      written += cnt;
+      if (written + 1 >= size) {
+        break;
+      }
       break;
     }
   }

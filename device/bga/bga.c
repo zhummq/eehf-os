@@ -20,10 +20,10 @@ void roll_screen(void) {
   uint32_t dst = (uint32_t)fb;
   uint32_t x = 0;
   for (x = 29; x < WIN_HEIGHT; x += 29) {
-    memcpy((uint32_t *)(dst + (x - 29) * WIN_WIDTH),
-           (uint32_t *)(dst + x * WIN_WIDTH), 29 * WIN_WIDTH * 4);
+    memcpy((uint32_t *)(dst + 4 * (x - 29) * WIN_WIDTH),
+           (uint32_t *)(dst + 4 * x * WIN_WIDTH), 29 * WIN_WIDTH * 4);
   }
-  memset((uint32_t *)(dst + x * WIN_WIDTH), 0, 29 * WIN_WIDTH * 4);
+  memset((uint32_t *)(dst + 4 * (x - 29) * WIN_WIDTH), 0, 29 * WIN_WIDTH * 4);
 }
 void cls_vga(void) {
   uint32_t *dst = (uint32_t *)fb;

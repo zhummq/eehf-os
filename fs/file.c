@@ -4,6 +4,7 @@
 #include "stdio-kernel.h"
 #include "string.h"
 #include "super_block.h"
+#include <stdint.h>
 
 FILE *stderr;
 FILE *stdout;
@@ -12,16 +13,18 @@ FILE *stdin;
 struct file file_table[MAX_FILE_OPEN];
 
 struct index get_index(uint32_t size) {
-  uint32_t count = DIV_ROUND_UP(size, BLOCK_SIZE);
+  uint32_t count = size / 512;
   struct index index;
   index.direct = 0;
   index.sing = 0;
   index.dou = 0;
-  if (count <= 12) {
+  if (count < 12) {
     index.direct = count;
+    index.sing = 128;
     return index;
-  } else if (count <= 12 + 128) {
+  } else if (count < 12 + 128) {
     index.sing = count - 12;
+    index.direct = 12;
     return index;
   } else {
     index.dou = 1;
@@ -262,22 +265,27 @@ static void buf_write(uint32_t *i_sectors, uint32_t used_size,
                       uint32_t new_index, uint8_t *buf, uint8_t *io_buf) {
   uint32_t block_offset = used_size % BLOCK_SIZE;
   uint32_t bytes_written = 0;
-  if (block_offset) {
-    if (used_index == new_index) {
-      uint32_t lba = i_sectors[used_index - 1];
-      ide_read(cur_part->my_disk, lba, io_buf, 1);
-      memcpy(io_buf + block_offset, buf, new_size - used_size);
-      ide_write(cur_part->my_disk, lba, io_buf, 1);
-      return;
-    } else {
-      bytes_written = BLOCK_SIZE - block_offset;
-      uint32_t lba = i_sectors[used_index - 1];
-      ide_read(cur_part->my_disk, lba, io_buf, 1);
-      memcpy(io_buf + block_offset, buf, bytes_written);
-      ide_write(cur_part->my_disk, lba, io_buf, 1);
-    }
+  if (used_index == new_index) {
+    uint32_t lba = i_sectors[used_index];
+    ide_read(cur_part->my_disk, lba, io_buf, 1);
+    memcpy(io_buf + block_offset, buf, new_size - used_size);
+    ide_write(cur_part->my_disk, lba, io_buf, 1);
+    return;
   }
-  for (uint32_t i = used_index; i < new_index - 1; i++) {
+  if (block_offset) {
+    bytes_written += BLOCK_SIZE - block_offset;
+    uint32_t lba = i_sectors[used_index];
+    ide_read(cur_part->my_disk, lba, io_buf, 1);
+    memcpy(io_buf + block_offset, buf, bytes_written);
+    ide_write(cur_part->my_disk, lba, io_buf, 1);
+
+  } else {
+    uint32_t lba = get_lba();
+    i_sectors[used_index] = lba;
+    ide_write(cur_part->my_disk, lba, buf, 1);
+    bytes_written += BLOCK_SIZE;
+  }
+  for (uint32_t i = used_index + 1; i < new_index; i++) {
 
     uint32_t lba = get_lba();
     i_sectors[i] = lba;
@@ -285,11 +293,12 @@ static void buf_write(uint32_t *i_sectors, uint32_t used_size,
     bytes_written += BLOCK_SIZE;
   }
   uint32_t end_offset = new_size % BLOCK_SIZE;
-  uint32_t lba = get_lba();
-  i_sectors[new_index - 1] = lba;
-  end_offset = end_offset ? end_offset : BLOCK_SIZE;
-  memcpy(io_buf, buf + bytes_written, end_offset);
-  ide_write(cur_part->my_disk, lba, io_buf, 1);
+  if (end_offset) {
+    uint32_t lba = get_lba();
+    i_sectors[new_index] = lba;
+    memcpy(io_buf, buf + bytes_written, end_offset);
+    ide_write(cur_part->my_disk, lba, io_buf, 1);
+  }
 }
 int32_t file_write(struct file *file, const void *buf, uint32_t count) {
   if ((file->fd_inode->i_size + count) >
@@ -311,11 +320,11 @@ int32_t file_write(struct file *file, const void *buf, uint32_t count) {
   struct index used_index = get_index(used_size);
   struct index new_index = get_index(new_size);
   file->fd_pos = file->fd_inode->i_size - 1;
-  if ((used_index.dou == 0 && used_index.direct != 0) || used_size == 0) {
-    if (new_index.dou == 0 && new_index.direct != 0) {
+  if ((used_index.dou == 0 && used_index.sing == 128)) {
+    if (new_index.dou == 0 && new_index.sing == 128) {
       buf_write(file->fd_inode->i_sectors, used_size, new_size,
                 used_index.direct, new_index.direct, buf_dst, io_buf);
-    } else if (new_index.dou == 0 && new_index.sing != 0) {
+    } else if (new_index.dou == 0 && new_index.direct == 12) {
       uint32_t bytes_written = 0;
       buf_write(file->fd_inode->i_sectors, used_size, 12 * BLOCK_SIZE,
                 used_index.direct, 12, buf_dst, io_buf);
@@ -342,7 +351,6 @@ int32_t file_write(struct file *file, const void *buf, uint32_t count) {
       file->fd_inode->i_sectors[13] = double_lba;
       memset(lba_buf, 0, BLOCK_SIZE);
       for (int32_t i = 0; i < (int32_t)new_index.sing; i++) {
-
         uint32_t lba = get_lba();
         lba_buf[i] = lba;
         memset(double_buf, 0, BLOCK_SIZE);
@@ -360,8 +368,8 @@ int32_t file_write(struct file *file, const void *buf, uint32_t count) {
       }
       ide_write(cur_part->my_disk, double_lba, lba_buf, 1);
     }
-  } else if (used_index.dou == 0 && used_index.sing != 0) {
-    if (new_index.dou == 0 && new_index.sing != 0) {
+  } else if (used_index.dou == 0 && used_index.direct == 12) {
+    if (new_index.dou == 0 && new_index.direct == 12) {
       uint32_t sing_lba = file->fd_inode->i_sectors[12];
       memset(lba_buf, 0, BLOCK_SIZE);
       ide_read(cur_part->my_disk, sing_lba, lba_buf, 1);
@@ -420,6 +428,13 @@ int32_t file_write(struct file *file, const void *buf, uint32_t count) {
         ide_write(cur_part->my_disk, lba, double_buf, 1);
         bytes_written += (used_index.sing + 1) * 128 * BLOCK_SIZE +
                          140 * BLOCK_SIZE - used_size;
+      } else {
+        uint32_t lba = get_lba();
+        lba_buf[used_index.sing] = lba;
+        memset(double_buf, 0, BLOCK_SIZE);
+        buf_write(double_buf, 0, 0, 0, 128, buf_dst + bytes_written, io_buf);
+        ide_write(cur_part->my_disk, lba, double_buf, 1);
+        bytes_written += 128 * BLOCK_SIZE;
       }
       for (uint32_t i = used_index.sing + 1; i < new_index.sing; i++) {
         uint32_t lba = get_lba();
@@ -773,35 +788,39 @@ all_blocks + 12, 1); // 将一级间接块表读进来写入到第13个块的位
 }*/
 static void buf_read(uint32_t *i_sectors, uint8_t *buf_dst, uint32_t used_index,
                      uint32_t new_index, uint32_t used_size, uint32_t new_size,
-                     void *io_buf, uint32_t size_left) {
+                     void *io_buf) {
   uint32_t block_offset = used_size % BLOCK_SIZE;
 
   uint32_t bytes_written = 0;
+  if (used_index == new_index) {
+    uint32_t block_lba = i_sectors[used_index];
+    ide_read(cur_part->my_disk, block_lba, io_buf, 1);
+    memcpy(buf_dst, io_buf + block_offset, new_size - used_size);
+    return;
+  }
   if (block_offset) {
-    if (used_index == new_index) {
-      uint32_t block_lba = i_sectors[used_index - 1];
-      ide_read(cur_part->my_disk, block_lba, io_buf, 1);
-      memcpy(buf_dst, io_buf + block_offset, size_left);
-      return;
-    } else {
-      uint32_t block_lba = i_sectors[used_index - 1];
-      ide_read(cur_part->my_disk, block_lba, io_buf, 1);
-      memcpy(buf_dst, io_buf + block_offset, BLOCK_SIZE - block_offset);
-      bytes_written += BLOCK_SIZE - block_offset;
-    }
+    uint32_t block_lba = i_sectors[used_index];
+    ide_read(cur_part->my_disk, block_lba, io_buf, 1);
+    memcpy(buf_dst, io_buf + block_offset, BLOCK_SIZE - block_offset);
+    bytes_written += BLOCK_SIZE - block_offset;
+  } else {
+    uint32_t lba = i_sectors[used_index];
+    ide_read(cur_part->my_disk, lba, io_buf, 1);
+    memcpy(buf_dst + bytes_written, io_buf, BLOCK_SIZE);
+    bytes_written += BLOCK_SIZE;
   }
   uint32_t end_offset = new_size % BLOCK_SIZE;
-  for (uint32_t i = used_index; i < new_index - 1; i++) {
+  for (uint32_t i = used_index + 1; i < new_index; i++) {
     uint32_t lba = i_sectors[i];
     ide_read(cur_part->my_disk, lba, io_buf, 1);
     memcpy(buf_dst + bytes_written, io_buf, BLOCK_SIZE);
     bytes_written += BLOCK_SIZE;
   }
-  uint32_t left_size = end_offset ? end_offset : BLOCK_SIZE;
-  uint32_t lba = i_sectors[new_index - 1];
-  ide_read(cur_part->my_disk, lba, io_buf, 1);
-  memcpy(buf_dst + bytes_written, io_buf, left_size);
-  bytes_written += left_size;
+  if (end_offset) {
+    uint32_t lba = i_sectors[new_index];
+    ide_read(cur_part->my_disk, lba, io_buf, 1);
+    memcpy(buf_dst + bytes_written, io_buf, end_offset);
+  }
 }
 int32_t file_read(struct file *file, void *buf, uint32_t count) {
   uint8_t *buf_dst = (uint8_t *)buf;
@@ -827,31 +846,31 @@ int32_t file_read(struct file *file, void *buf, uint32_t count) {
   uint32_t new_size = file->fd_pos + size_left;
   struct index used_index = get_index(used_size);
   struct index new_index = get_index(new_size);
-  if ((used_index.dou == 0 && used_index.direct != 0) || used_size == 0) {
-    if (new_index.dou == 0 && new_index.direct != 0) {
+  if (used_index.dou == 0 && used_index.sing == 128) {
+    if (new_index.dou == 0 && new_index.sing == 128) {
       buf_read(file->fd_inode->i_sectors, buf_dst, used_index.direct,
-               new_index.direct, used_size, new_size, io_buf, size_left);
-    } else if (new_index.dou == 0 && new_index.sing != 0) {
+               new_index.direct, used_size, new_size, io_buf);
+    } else if (new_index.dou == 0 && new_index.direct == 12) {
       uint32_t bytes_written = 0;
       buf_read(file->fd_inode->i_sectors, buf_dst, used_index.direct, 12,
-               used_size, 12 * BLOCK_SIZE, io_buf, 12 * BLOCK_SIZE - used_size);
+               used_size, 12 * BLOCK_SIZE, io_buf);
       bytes_written += 12 * BLOCK_SIZE - used_size;
       uint32_t sing_lba = file->fd_inode->i_sectors[12];
       memset(lba_buf, 0, BLOCK_SIZE);
       ide_read(cur_part->my_disk, sing_lba, lba_buf, 1);
       buf_read(lba_buf, buf_dst + bytes_written, 0, new_index.sing,
-               12 * BLOCK_SIZE, new_size, io_buf, new_size - bytes_written);
+               12 * BLOCK_SIZE, new_size, io_buf);
     } else {
       uint32_t bytes_written = 0;
       buf_read(file->fd_inode->i_sectors, buf_dst, used_index.direct, 12,
-               used_size, 12 * BLOCK_SIZE, io_buf, 12 * BLOCK_SIZE - used_size);
+               used_size, 12 * BLOCK_SIZE, io_buf);
       bytes_written += 12 * BLOCK_SIZE - used_size;
       uint32_t sing_lba = file->fd_inode->i_sectors[12];
       memset(lba_buf, 0, BLOCK_SIZE);
       ide_read(cur_part->my_disk, sing_lba, lba_buf, 1);
 
       buf_read(lba_buf, buf_dst + bytes_written, 0, 128, 12 * BLOCK_SIZE,
-               140 * BLOCK_SIZE, io_buf, 128 * BLOCK_SIZE);
+               140 * BLOCK_SIZE, io_buf);
 
       bytes_written += 128 * BLOCK_SIZE;
       uint32_t double_lba = file->fd_inode->i_sectors[13];
@@ -861,8 +880,7 @@ int32_t file_read(struct file *file, void *buf, uint32_t count) {
         uint32_t lba = double_buf[i];
         memset(lba_buf, 0, BLOCK_SIZE);
         ide_read(cur_part->my_disk, lba, lba_buf, 1);
-        buf_read(lba_buf, buf_dst + bytes_written, 0, 128, 0, 0, io_buf,
-                 128 * BLOCK_SIZE);
+        buf_read(lba_buf, buf_dst + bytes_written, 0, 128, 0, 0, io_buf);
         bytes_written += 128 * BLOCK_SIZE;
       }
       if (new_index.direct != 0) {
@@ -870,23 +888,23 @@ int32_t file_read(struct file *file, void *buf, uint32_t count) {
         memset(lba_buf, 0, BLOCK_SIZE);
         ide_read(cur_part->my_disk, lba, lba_buf, 1);
         buf_read(lba_buf, buf_dst + bytes_written, 0, new_index.direct, 0,
-                 new_size, io_buf, new_size - bytes_written);
+                 new_size, io_buf);
       }
     }
-  } else if (used_index.dou == 0 && used_index.sing != 0) {
-    if (new_index.dou == 0 && new_index.sing != 0) {
+  } else if (used_index.dou == 0 && used_index.direct == 12) {
+    if (new_index.dou == 0 && new_index.direct == 12) {
       int32_t sing_lba = file->fd_inode->i_sectors[12];
       memset(lba_buf, 0, BLOCK_SIZE);
       ide_read(cur_part->my_disk, sing_lba, lba_buf, 1);
       buf_read(lba_buf, buf_dst, used_index.sing, new_index.sing, used_size,
-               new_size, io_buf, size_left);
+               new_size, io_buf);
     } else {
       uint32_t bytes_written = 0;
       uint32_t sing_lba = file->fd_inode->i_sectors[12];
       memset(lba_buf, 0, BLOCK_SIZE);
       ide_read(cur_part->my_disk, sing_lba, lba_buf, 1);
       buf_read(lba_buf, buf_dst, used_index.sing, 128, used_size,
-               140 * BLOCK_SIZE, io_buf, 140 * BLOCK_SIZE - used_size);
+               140 * BLOCK_SIZE, io_buf);
       bytes_written += 140 * BLOCK_SIZE - used_size;
       uint32_t double_lba = file->fd_inode->i_sectors[13];
       memset(double_buf, 0, BLOCK_SIZE);
@@ -895,8 +913,7 @@ int32_t file_read(struct file *file, void *buf, uint32_t count) {
         uint32_t lba = double_buf[i];
         memset(lba_buf, 0, BLOCK_SIZE);
         ide_read(cur_part->my_disk, lba, lba_buf, 1);
-        buf_read(lba_buf, buf_dst + bytes_written, 0, 128, 0, 0, io_buf,
-                 128 * BLOCK_SIZE);
+        buf_read(lba_buf, buf_dst + bytes_written, 0, 128, 0, 0, io_buf);
         bytes_written += 128 * BLOCK_SIZE;
       }
       if (new_index.direct != 0) {
@@ -904,7 +921,7 @@ int32_t file_read(struct file *file, void *buf, uint32_t count) {
         memset(lba_buf, 0, BLOCK_SIZE);
         ide_read(cur_part->my_disk, lba, lba_buf, 1);
         buf_read(lba_buf, buf_dst + bytes_written, 0, new_index.direct, 0,
-                 new_size, io_buf, new_size - bytes_written);
+                 new_size, io_buf);
       }
     }
   } else {
@@ -916,25 +933,29 @@ int32_t file_read(struct file *file, void *buf, uint32_t count) {
       memset(lba_buf, 0, BLOCK_SIZE);
       ide_read(cur_part->my_disk, lba, lba_buf, 1);
       buf_read(lba_buf, buf_dst, used_index.direct, new_index.direct, used_size,
-               new_size, io_buf, size_left);
+               new_size, io_buf);
     } else {
       uint32_t bytes_written = 0;
       if (used_index.direct != 0) {
         uint32_t lba = double_buf[used_index.sing];
         memset(lba_buf, 0, BLOCK_SIZE);
         ide_read(cur_part->my_disk, lba, lba_buf, 1);
-        buf_read(lba_buf, buf_dst, used_index.direct, 128, used_size, 0, io_buf,
-                 140 * BLOCK_SIZE + (used_index.sing + 1) * 128 * BLOCK_SIZE -
-                     used_size);
+        buf_read(lba_buf, buf_dst, used_index.direct, 128, used_size, 0,
+                 io_buf);
         bytes_written += 140 * BLOCK_SIZE +
                          (used_index.sing + 1) * 128 * BLOCK_SIZE - used_size;
+      } else {
+        uint32_t lba = double_buf[used_index.sing];
+        memset(lba_buf, 0, BLOCK_SIZE);
+        ide_read(cur_part->my_disk, lba, lba_buf, 1);
+        buf_read(lba_buf, buf_dst + bytes_written, 0, 128, 0, 0, io_buf);
+        bytes_written += 128 * BLOCK_SIZE;
       }
       for (uint32_t i = used_index.sing + 1; i < new_index.sing; i++) {
         uint32_t lba = double_buf[i];
         memset(lba_buf, 0, BLOCK_SIZE);
         ide_read(cur_part->my_disk, lba, lba_buf, 1);
-        buf_read(lba_buf, buf_dst + bytes_written, 0, 128, 0, 0, io_buf,
-                 128 * BLOCK_SIZE);
+        buf_read(lba_buf, buf_dst + bytes_written, 0, 128, 0, 0, io_buf);
         bytes_written += 128 * BLOCK_SIZE;
       }
       if (new_index.direct != 0) {
@@ -942,7 +963,7 @@ int32_t file_read(struct file *file, void *buf, uint32_t count) {
         memset(lba_buf, 0, BLOCK_SIZE);
         ide_read(cur_part->my_disk, lba, lba_buf, 1);
         buf_read(lba_buf, buf_dst + bytes_written, 0, new_index.direct, 0,
-                 new_size, io_buf, new_size - bytes_written);
+                 new_size, io_buf);
       }
     }
   }

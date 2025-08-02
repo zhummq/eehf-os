@@ -112,7 +112,10 @@ static void intr_keyboard_handler(void) {
       0xe0) // 如果传入是0xe0，说明是处理两字节按键的扫描码，那么就应该立即退出去取出下一个字节
   {
     ext_scancode = 1; // 打开标记，记录传入的是两字节扫描码
-    return;           // 退出
+    if (!ioq_full(&kbd_keycode_buf)) {
+      ioq_putchar(&kbd_keycode_buf, (char)scancode);
+    }
+    return; // 退出
   }
   if (ext_scancode) // 如果能进入这个if，那么ext_scancode==1，说明上次传入的是两字节按键扫描码的第一个字节
   {

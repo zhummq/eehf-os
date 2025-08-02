@@ -7,7 +7,7 @@
 #define WIN_HEIGHT 768
 #define WIN_WIDTH 1024
 void bga_init(void);
-void put_piexl(uint32_t x,uint32_t y,uint32_t color);
+void put_piexl(uint32_t x, uint32_t y, uint32_t color);
 void roll_screen(void);
 void cls_vga(void);
 #endif

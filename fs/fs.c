@@ -285,7 +285,7 @@ void filesys_init() {
   }
   sys_free(sb_buf);
   /* 确定默认操作的分区 */
-  char default_part[8] = "sdb1";
+  char default_part[8] = "sdb9";
   /* 挂载分区 */
   list_traversal(&partition_list, mount_partition, (int)default_part);
   /* 将当前分区的根目录打开 */

@@ -68,6 +68,22 @@ int main(void) {
     }
     sys_free(prog_buf);
   }
+  int32_t fd_free_wad = sys_open("/doom2.wad", O_CREAT | O_RDWR);
+  if (fd_free_wad != -1) {
+    uint32_t file_size = 14943400;
+    uint32_t sec_cnt = DIV_ROUND_UP(file_size, 512);
+    struct disk *sda = &ide_channels[0].devices[0];
+    void *prog_buf = sys_malloc(sec_cnt * 512);
+    ide_read(sda, 15000, prog_buf, sec_cnt);
+
+    printk("open success!");
+    if (sys_write(fd_free_wad, prog_buf, file_size) == -1) {
+      printk("file write error!\n");
+      while (1)
+        ;
+    }
+    sys_free(prog_buf);
+  }
 
   font_init();
   // cls_screen();

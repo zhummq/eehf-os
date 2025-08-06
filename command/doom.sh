@@ -4,6 +4,7 @@ DOOM_BIN="$HOME/doomgeneric/doomgeneric/doomgeneric"
 DOOM_WAD="$HOME/eehf-os/doom1.wad"
 FONT_PSF="$HOME/eehf-os/Solarize.12x29.psf"
 DD_OUT="$HOME/eehf-os/hd3M.img"
+FREE_DOOM="$HOME/eehf-os/DOOM2.WAD"
 
 SEC_CNT=$(ls -l $DOOM_BIN | awk '{printf("%d", ($5+511)/512)}')
 ls -l "$DOOM_BIN" | awk '{printf("file size: %d bytes\n", $5)}'
@@ -23,4 +24,9 @@ DOOM_CNT=$(ls -l $DOOM_WAD | awk '{printf("%d", ($5+511)/512)}')
 if [[ -f $DOOM_WAD ]]; then
   dd if=$DOOM_WAD of=$DD_OUT bs=512 \
     count=$DOOM_CNT seek=5000 conv=notrunc
+fi
+FREE_DOOM_CNT=$(ls -l $FREE_DOOM | awk '{printf("%d", ($5+511)/512)}')
+if [[ -f $FREE_DOOM ]]; then
+  dd if=$FREE_DOOM of=$DD_OUT bs=512 \
+    count=$FREE_DOOM_CNT seek=15000 conv=notrunc
 fi

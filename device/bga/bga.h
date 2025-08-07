@@ -10,4 +10,5 @@ void bga_init(void);
 void put_piexl(uint32_t x, uint32_t y, uint32_t color);
 void roll_screen(void);
 void cls_vga(void);
+void copy_screen(uint32_t x, uint32_t y, uint32_t addr);
 #endif

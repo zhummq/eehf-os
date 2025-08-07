@@ -1,6 +1,7 @@
 #include "inode.h"
 #include "debug.h"
 #include "file.h"
+#include "fs.h"
 #include "ide.h"
 #include "interrupt.h"
 #include "stdint.h"
@@ -189,7 +190,13 @@ void inode_delete(struct partition *part, uint32_t inode_no, void *io_buf) {
     ide_write(part->my_disk, inode_pos.sec_lba, inode_buf, 1);
   }
 }
-
+static void lba_release(struct partition *part, uint32_t lba) {
+  uint32_t block_bitmap_idx = 0;
+  block_bitmap_idx = lba - part->sb->data_start_lba;
+  ASSERT(block_bitmap_idx > 0);
+  bitmap_set(&part->block_bitmap, block_bitmap_idx, 0);
+  bitmap_sync(cur_part, block_bitmap_idx, BLOCK_BITMAP);
+}
 /* 回收inode的数据块和inode本身 */
 void inode_release(struct partition *part, uint32_t inode_no) {
   struct inode *inode_to_del = inode_open(part, inode_no);
@@ -198,38 +205,68 @@ void inode_release(struct partition *part, uint32_t inode_no) {
   /* 1 回收inode占用的所有块 */
   uint8_t block_idx = 0, block_cnt = 12;
   uint32_t block_bitmap_idx;
-  uint32_t all_blocks[140] = {0}; // 12个直接块+128个间接块
+  uint32_t *double_buf = sys_malloc(BLOCK_SIZE);
+  uint32_t *thd_buf = sys_malloc(BLOCK_SIZE);
+  uint32_t new_cnt = DIV_ROUND_UP(inode_to_del->i_size, 512);
+  uint32_t *all_buf = sys_malloc(new_cnt * 4 + BLOCK_SIZE);
+  lba_read(all_buf, inode_to_del, inode_to_del->i_size, double_buf, thd_buf);
 
-  /* a 先将前12个直接块存入all_blocks */
-  while (block_idx < 12) {
-    all_blocks[block_idx] = inode_to_del->i_sectors[block_idx];
-    block_idx++;
-  }
-
-  /* b 如果一级间接块表存在,将其128个间接块读到all_blocks[12~],
-   * 并释放一级间接块表所占的扇区 */
-  if (inode_to_del->i_sectors[12] != 0) {
-    ide_read(part->my_disk, inode_to_del->i_sectors[12], all_blocks + 12, 1);
-    block_cnt = 140;
-
-    /* 回收一级间接块表占用的扇区 */
-    block_bitmap_idx = inode_to_del->i_sectors[12] - part->sb->data_start_lba;
-    ASSERT(block_bitmap_idx > 0);
-    bitmap_set(&part->block_bitmap, block_bitmap_idx, 0);
-    bitmap_sync(cur_part, block_bitmap_idx, BLOCK_BITMAP);
-  }
-
-  /* c inode所有的块地址已经收集到all_blocks中,下面逐个回收 */
+  /* c inode所有的块地址已经收集到all_buf中,下面逐个回收 */
   block_idx = 0;
-  while (block_idx < block_cnt) {
-    if (all_blocks[block_idx] != 0) {
-      block_bitmap_idx = 0;
-      block_bitmap_idx = all_blocks[block_idx] - part->sb->data_start_lba;
-      ASSERT(block_bitmap_idx > 0);
-      bitmap_set(&part->block_bitmap, block_bitmap_idx, 0);
-      bitmap_sync(cur_part, block_bitmap_idx, BLOCK_BITMAP);
+  while (block_idx < new_cnt) {
+    if (all_buf[block_idx] != 0) {
+      lba_release(part, all_buf[block_idx]);
     }
     block_idx++;
+  }
+  if (new_cnt > 0) {
+    uint32_t i = new_cnt < 12 ? new_cnt : 12;
+    memset(inode_to_del->i_sectors, 0, i * 4);
+    new_cnt -= i;
+  }
+
+  if (new_cnt > 0) {
+    uint32_t i = new_cnt < 128 ? new_cnt : 128;
+    uint32_t lba = inode_to_del->i_sectors[12];
+    lba_release(part, lba);
+    new_cnt -= i;
+  }
+  if (new_cnt > 0) {
+    uint32_t i_cnt = DIV_ROUND_UP(new_cnt, 128);
+    i_cnt = i_cnt < 128 ? i_cnt : 128;
+    uint32_t double_lba = inode_to_del->i_sectors[13];
+    memset(double_buf, 0, BLOCK_SIZE);
+    ide_read(cur_part->my_disk, double_lba, double_buf, 1);
+    for (uint32_t i = 0; i < i_cnt; i++) {
+      uint32_t lba = double_buf[i];
+      lba_release(part, lba);
+      new_cnt -= 128;
+    }
+    lba_release(part, double_lba);
+  }
+  if (new_cnt > 0) {
+    uint32_t i_cnt = DIV_ROUND_UP(new_cnt, 128);
+    uint32_t d_cnt = DIV_ROUND_UP(i_cnt, 128);
+    d_cnt = d_cnt < 128 ? d_cnt : 128;
+    uint32_t thd_lba = inode_to_del->i_sectors[14];
+    memset(thd_buf, 0, BLOCK_SIZE);
+    ide_read(cur_part->my_disk, thd_lba, thd_buf, 1);
+    for (uint32_t i = 0; i < d_cnt; i++) {
+      uint32_t double_lba = thd_buf[i];
+      memset(double_buf, 0, BLOCK_SIZE);
+      ide_read(cur_part->my_disk, double_lba, double_buf, 1);
+      uint32_t j_cnt = 128;
+      if (i == d_cnt - 1 && i_cnt % 128 != 0) {
+        j_cnt = i_cnt % 128;
+      }
+      for (uint32_t j = 0; j < j_cnt; j++) {
+        uint32_t lba = double_buf[j];
+        lba_release(part, lba);
+        new_cnt -= 128;
+      }
+      lba_release(part, double_lba);
+    }
+    lba_release(part, thd_lba);
   }
 
   /*2 回收该inode所占用的inode */
@@ -243,6 +280,9 @@ void inode_release(struct partition *part, uint32_t inode_no) {
   void *io_buf = sys_malloc(1024);
   inode_delete(part, inode_no, io_buf);
   sys_free(io_buf);
+  sys_free(double_buf);
+  sys_free(thd_buf);
+  sys_free(all_buf);
   /***********************************************/
 
   inode_close(inode_to_del);

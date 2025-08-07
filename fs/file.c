@@ -2,6 +2,7 @@
 #include "fs.h"
 #include "global.h"
 #include "ide.h"
+#include "inode.h"
 #include "interrupt.h"
 #include "memory.h"
 #include "stdio-kernel.h"
@@ -358,20 +359,20 @@ static void dou_write(uint32_t used_sing, uint32_t new_sing, uint32_t *lba_buf,
     }
   }
 }
-static void lba_read(uint32_t *all_buf, struct file *file, uint32_t size,
-                     uint32_t *double_buf, uint32_t *thd_buf) {
+void lba_read(uint32_t *all_buf, struct inode *fd_inode, uint32_t size,
+              uint32_t *double_buf, uint32_t *thd_buf) {
   uint32_t new_cnt = DIV_ROUND_UP(size, 512);
   uint32_t index = 0;
   if (new_cnt > 0) {
     uint32_t i = new_cnt < 12 ? new_cnt : 12;
-    memcpy(all_buf, file->fd_inode->i_sectors, i * 4);
+    memcpy(all_buf, fd_inode->i_sectors, i * 4);
     index += i;
     new_cnt -= i;
   }
 
   if (new_cnt > 0) {
     uint32_t i = new_cnt < 128 ? new_cnt : 128;
-    uint32_t lba = file->fd_inode->i_sectors[12];
+    uint32_t lba = fd_inode->i_sectors[12];
     ide_read(cur_part->my_disk, lba, (uint8_t *)(all_buf + index), 1);
     index += i;
     new_cnt -= i;
@@ -379,7 +380,7 @@ static void lba_read(uint32_t *all_buf, struct file *file, uint32_t size,
   if (new_cnt > 0) {
     uint32_t i_cnt = DIV_ROUND_UP(new_cnt, 128);
     i_cnt = i_cnt < 128 ? i_cnt : 128;
-    uint32_t double_lba = file->fd_inode->i_sectors[13];
+    uint32_t double_lba = fd_inode->i_sectors[13];
     memset(double_buf, 0, BLOCK_SIZE);
     ide_read(cur_part->my_disk, double_lba, double_buf, 1);
     for (uint32_t i = 0; i < i_cnt; i++) {
@@ -393,7 +394,7 @@ static void lba_read(uint32_t *all_buf, struct file *file, uint32_t size,
     uint32_t i_cnt = DIV_ROUND_UP(new_cnt, 128);
     uint32_t d_cnt = DIV_ROUND_UP(i_cnt, 128);
     d_cnt = d_cnt < 128 ? d_cnt : 128;
-    uint32_t thd_lba = file->fd_inode->i_sectors[14];
+    uint32_t thd_lba = fd_inode->i_sectors[14];
     memset(thd_buf, 0, BLOCK_SIZE);
     ide_read(cur_part->my_disk, thd_lba, thd_buf, 1);
     for (uint32_t i = 0; i < d_cnt; i++) {
@@ -436,7 +437,7 @@ int32_t file_write(struct file *file, const void *buf, uint32_t count) {
   uint32_t new_cnt = DIV_ROUND_UP(new_size, 512);
   uint32_t *all_buf = sys_malloc(new_cnt * 4 + BLOCK_SIZE);
   file->fd_pos = file->fd_inode->i_size - 1;
-  lba_read(all_buf, file, used_size, double_buf, thd_buf);
+  lba_read(all_buf, file->fd_inode, used_size, double_buf, thd_buf);
   buf_write(all_buf, used_size, new_size, used_size / 512, new_size / 512,
             buf_dst, io_buf);
   uint32_t index = 0;
@@ -953,7 +954,7 @@ int32_t file_read(struct file *file, void *buf, uint32_t count) {
   uint32_t new_size = file->fd_pos + size_left;
   uint32_t new_cnt = DIV_ROUND_UP(new_size, 512);
   uint32_t *all_buf = sys_malloc(new_cnt * 4 + BLOCK_SIZE);
-  lba_read(all_buf, file, new_size, double_buf, thd_buf);
+  lba_read(all_buf, file->fd_inode, new_size, double_buf, thd_buf);
   buf_read(all_buf, buf_dst, used_size / 512, new_size / 512, used_size,
            new_size, io_buf);
   sys_free(thd_buf);

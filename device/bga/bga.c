@@ -2,6 +2,7 @@
 #include "memory.h"
 #include "pci.h"
 #include "string.h"
+#include <stdint.h>
 volatile uint32_t *fb;
 uint32_t width = 1024;
 static void set_vga_mode(uint16_t width, uint16_t height, uint16_t bpp,
@@ -24,6 +25,13 @@ void roll_screen(void) {
            (uint32_t *)(dst + 4 * x * WIN_WIDTH), 29 * WIN_WIDTH * 4);
   }
   memset((uint32_t *)(dst + 4 * (x - 29) * WIN_WIDTH), 0, 29 * WIN_WIDTH * 4);
+}
+void copy_screen(uint32_t x, uint32_t y, uint32_t addr) {
+  uint32_t dst = (uint32_t)fb;
+  for (uint32_t i = 0; i < x; i++) {
+    memcpy((uint32_t *)(dst + 4 * i * WIN_WIDTH),
+           (uint32_t *)(addr + 4 * i * y), y * 4);
+  }
 }
 void cls_vga(void) {
   uint32_t *dst = (uint32_t *)fb;

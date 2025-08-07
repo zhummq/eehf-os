@@ -44,4 +44,6 @@ int32_t file_close(struct file *file);
 int32_t file_write(struct file *file, const void *buf, uint32_t count);
 int32_t file_read(struct file *file, void *buf, uint32_t count);
 struct index get_index(uint32_t size);
+void lba_read(uint32_t *all_buf, struct inode *fd_inode, uint32_t size,
+              uint32_t *double_buf, uint32_t *thd_buf);
 #endif

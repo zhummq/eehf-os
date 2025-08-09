@@ -4,6 +4,7 @@
 // #include "debug.h"
 #include "assert.h"
 #include "buildin_cmd.h"
+#include "net.h"
 #include "string.h"
 #include "syscall.h"
 

@@ -13,18 +13,19 @@
   - 支持 Ping 与 UDP 回显测试
 - ✅ socket 抽象接口（未来支持 TCP）
 - 🛠️ 支持 GDB 调试与调试日志系统
+- 具有vbe framebuff显存,支持游玩doom1.wad，doom2.wad
 
 ## 🧰 开发环境
 
-- 模拟器：Bochs2.8-e1000
+- 模拟器：Bochs2.8-e1000，qemu-system-i386
 - 编程语言：C + 少量汇编
-- 工具链：`gcc`, `make`, `nasm`, `gdb`
+- 工具链：`gcc/clang`, `make`, `nasm`, `gdb`
 
 ## 📚 学习参考
-- 《操作系统真相还原》
--  [Intel E1000 规范文档](https://pdos.csail.mit.edu/6.828/2018/readings/hardware/8254x_GBe_SDM.pdf)
-- b站视频 [手写网络协议栈](https://www.bilibili.com/video/BV1CJM8z8Eb4?vd_source=f9e49111868edc5258768c0629d63793)
 
+- 《操作系统真相还原》
+- [Intel E1000 规范文档](https://pdos.csail.mit.edu/6.828/2018/readings/hardware/8254x_GBe_SDM.pdf)
+- b站视频 [手写网络协议栈](https://www.bilibili.com/video/BV1CJM8z8Eb4?vd_source=f9e49111868edc5258768c0629d63793)
 
 ## 🚀 快速开始
 
@@ -32,8 +33,7 @@
 git clone https://github.com/zhummq/eehf-os.git
 cd eehf-os
 make run  # 启动 Bochs 模拟器
+make all # 启动qemu-system-i386 模拟器
 ```
 
-
-
-
+在运行之前确保makefile中的镜像存在并且hd80M.img分区完成，逻辑分区编号大于等于9，大小不小于30MB

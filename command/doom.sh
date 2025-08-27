@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DOOM_BIN="$HOME/doomgeneric/doomgeneric/doomgeneric"
+DOOM_BIN="$HOME/eehf-os/doomgeneric/doomgeneric"
 DOOM_WAD="$HOME/eehf-os/doom1.wad"
 FONT_PSF="$HOME/eehf-os/Solarize.12x29.psf"
 DD_OUT="$HOME/eehf-os/hd3M.img"

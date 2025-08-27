@@ -2,6 +2,7 @@
 BUILD_DIR=./build
 ENTRY_POINT=0xc0001500
 HD60M_PATH=./hd3M.img
+HD80M_PATH=./hd80M.img
 #只需要把hd60m.img路径改成自己环境的路径，整个代码直接make all就完全写入了，能够运行成功
 AS=nasm
 CC=gcc
@@ -65,6 +66,8 @@ mk_dir:
 #判断build文件夹是否存在，如果不存在，则创建
 
 hd:
+	if [ ! -f $(HD60M_PATH) ];then qemu-img create -f raw $(HD60M_PATH) 60M;fi
+	if [ ! -f $(HD80M_PATH) ];then qemu-img create -f raw $(HD80M_PATH) 80M;fi
 	dd if=build/mbr.o of=$(HD60M_PATH) count=1 bs=512 conv=notrunc && \
 	dd if=build/loader.o of=$(HD60M_PATH) count=10 bs=512 seek=2 conv=notrunc && \
 	dd if=$(BUILD_DIR)/kernel.elf of=$(HD60M_PATH) bs=512 count=700 seek=9 conv=notrunc
